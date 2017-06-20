@@ -4,6 +4,11 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>MovieSoid UIKit.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>12</integer>
+		</dict>
 		<key>MovieSoid.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
@@ -12,6 +17,11 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>281D60661EF590D30037675B</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>28DB34B81EF36D1300FF0E95</key>
 		<dict>
 			<key>primary</key>

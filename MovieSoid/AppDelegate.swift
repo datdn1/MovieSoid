@@ -15,7 +15,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+
+        UINavigationBar.appearance().isTranslucent = true
+        UINavigationBar.appearance().tintColor = .white
+        UINavigationBar.appearance().barTintColor = Constants.Color.headerColor
+        UINavigationBar.appearance().titleTextAttributes = [NSForegroundColorAttributeName:Constants.Color.actionColor]
+
+        window = WindowWithStatusBarUnderlay(frame: UIScreen.main.bounds)
+//        let rootViewController = UIStoryboard(name: "Main", bundle: nil).instantiateInitialViewController()
+
+        let rootViewController = UINavigationController(rootViewController: MoviesViewController())
+        window?.rootViewController = rootViewController
+        window?.makeKeyAndVisible()
+
         return true
     }
 
