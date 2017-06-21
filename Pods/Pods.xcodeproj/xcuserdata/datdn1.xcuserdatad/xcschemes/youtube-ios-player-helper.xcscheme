@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "40728CC2C5A3A00B12C99D88A527EAF3"
-               BuildableName = "AsyncDisplayKit.framework"
-               BlueprintName = "Texture"
+               BlueprintIdentifier = "C36A8515FBF71EBB9F97FF62B3D11E67"
+               BuildableName = "youtube_ios_player_helper.framework"
+               BlueprintName = "youtube-ios-player-helper"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "40728CC2C5A3A00B12C99D88A527EAF3"
-            BuildableName = "AsyncDisplayKit.framework"
-            BlueprintName = "Texture"
+            BlueprintIdentifier = "C36A8515FBF71EBB9F97FF62B3D11E67"
+            BuildableName = "youtube_ios_player_helper.framework"
+            BlueprintName = "youtube-ios-player-helper"
             ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

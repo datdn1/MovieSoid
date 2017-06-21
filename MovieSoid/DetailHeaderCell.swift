@@ -28,7 +28,7 @@ class DetailHeaderCell: ASCellNode {
 
     init(title: String) {
         super.init()
-        self.titleTextNode.attributedText = NSAttributedString(string: title)
+        self.titleTextNode.attributedText = NSAttributedString(string: title, attributes: [NSFontAttributeName: UIFont.boldSystemFont(ofSize: 14), NSForegroundColorAttributeName: UIColor.white])
         self.backgroundColor = Constants.Color.headerColor
         self.automaticallyManagesSubnodes = true
     }

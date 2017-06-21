@@ -72,6 +72,7 @@ class MovieDetailInfoCell: ASCellNode {
     }
 
     override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
+
         self.titleTextNode.style.flexGrow = 1
         self.titleTextNode.style.flexShrink = 1
         self.genresTextNode.style.flexShrink = 1
@@ -88,7 +89,8 @@ class MovieDetailInfoCell: ASCellNode {
         let titleBackgroundSpec = ASBackgroundLayoutSpec(child: titleInsetsSpec, background: titleBackgroundNode)
 
         self.addWatchlistButtonNode.style.alignSelf = .stretch
-        let overviewStackSpec = ASStackLayoutSpec(direction: .vertical, spacing: 15, justifyContent: .start, alignItems: .center, children: [self.overviewTextNode, self.addWatchlistButtonNode])
+
+        let overviewStackSpec = ASStackLayoutSpec(direction: .vertical, spacing: 15, justifyContent: .start, alignItems: .start, children: [self.overviewTextNode, self.addWatchlistButtonNode])
         overviewStackSpec.style.width = ASDimension(unit: .points, value: UIScreen.main.bounds.size.width)
         let overviewInsetsSpec = ASInsetLayoutSpec(insets: UIEdgeInsetsMake(8, 8, 8, 8), child: overviewStackSpec)
 
@@ -108,7 +110,7 @@ class MovieDetailInfoCell: ASCellNode {
         var rateBackgroundSpec: ASBackgroundLayoutSpec?
         if rateStackChildren.count > 0 {
             let rateStackSpec = ASStackLayoutSpec(direction: .horizontal, spacing: 5, justifyContent: .start, alignItems: .center, children: [self.rateImageNode, ASStackLayoutSpec(direction: .vertical, spacing: 0, justifyContent: .start, alignItems: .center, children: rateStackChildren)])
-            let rateInsetSpec = ASInsetLayoutSpec(insets: UIEdgeInsetsMake(8, 5, 8, 8), child: rateStackSpec)
+            let rateInsetSpec = ASInsetLayoutSpec(insets: UIEdgeInsetsMake(8, 8, 8, 0), child: rateStackSpec)
 
             let rateBackgroundNode = ASDisplayNode()
             rateBackgroundNode.borderWidth = 1.0
@@ -117,7 +119,7 @@ class MovieDetailInfoCell: ASCellNode {
             rateBackgroundSpec = ASBackgroundLayoutSpec(child: rateInsetSpec, background: rateBackgroundNode)
         }
 
-        let rateItInsetSpec = ASInsetLayoutSpec(insets: UIEdgeInsetsMake(8, 8, 8, 8), child: self.rateButtonNode)
+        let rateItInsetSpec = ASInsetLayoutSpec(insets: UIEdgeInsetsMake(8, 0, 8, 0), child: self.rateButtonNode)
         let rateItBackgroundNode = ASDisplayNode()
         rateItBackgroundNode.borderWidth = 1.0
         rateItBackgroundNode.borderColor = Constants.Color.headerColor.cgColor
@@ -125,15 +127,15 @@ class MovieDetailInfoCell: ASCellNode {
 
 
         let rateItBackgroundSpec = ASBackgroundLayoutSpec(child: rateItInsetSpec, background: rateItBackgroundNode)
-        rateItBackgroundSpec.style.flexGrow = 1
+        rateItBackgroundSpec.style.flexGrow = 0.5
 
         var rateHorizonChildren: [ASLayoutElement] = [rateItBackgroundSpec]
         if let rateBackgroundSpec = rateBackgroundSpec {
-            rateBackgroundSpec.style.flexGrow = 1
+            rateBackgroundSpec.style.flexGrow = 0.5
             rateHorizonChildren.insert(rateBackgroundSpec, at: 0)
         }
 
-        let rateHorizonStackSpec = ASStackLayoutSpec(direction: .horizontal, spacing: 0, justifyContent: .spaceBetween, alignItems: .stretch, children: rateHorizonChildren)
+        let rateHorizonStackSpec = ASStackLayoutSpec(direction: .horizontal, spacing: 0, justifyContent: .center, alignItems: .stretch, children: rateHorizonChildren)
         return ASStackLayoutSpec(direction: .vertical, spacing: 0, justifyContent: .start, alignItems: .stretch, children: [titleBackgroundSpec, overviewBackgroundSpec, rateHorizonStackSpec])
     }
 }

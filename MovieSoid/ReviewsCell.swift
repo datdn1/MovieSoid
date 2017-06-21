@@ -61,12 +61,8 @@ class ReviewsCell: ASCellNode {
         self.automaticallyManagesSubnodes = true
     }
 
-    private func setupViews() {
-        if let isSeeMore = self.model.isSeeMore, isSeeMore {
-            self.contentTextNode.maximumNumberOfLines = 0
-        }
-        self.usernameTextNode.attributedText = model.attrStringForAuthor(withSize: 14)
-        self.contentTextNode.attributedText = model.attrStringForContent(withSize: 12)
+    override func didLoad() {
+        view.clipsToBounds = true
     }
 
     override func layoutSpecThatFits(_ constrainedSize: ASSizeRange) -> ASLayoutSpec {
@@ -80,8 +76,13 @@ class ReviewsCell: ASCellNode {
         return ASStackLayoutSpec(direction: .vertical, spacing: 0, justifyContent: .start, alignItems: .start, children: mainStackChildren)
     }
 
-    override func didLoad() {
-        view.clipsToBounds = true
+    private func setupViews() {
+        if let isSeeMore = self.model.isSeeMore, isSeeMore {
+            self.contentTextNode.maximumNumberOfLines = 0
+        }
+        self.usernameTextNode.attributedText = model.attrStringForAuthor(withSize: 14)
+        self.contentTextNode.attributedText = model.attrStringForContent(withSize: 12)
+        self.contentTextNode.addLinkDetection(model.content, highLightColor: Constants.Color.actionColor, delegate: self)
     }
 }
 
@@ -90,6 +91,34 @@ extension ReviewsCell: ASTextNodeDelegate {
         self.model.isSeeMore = true
         guard let delegate = self.delegate else { return }
         delegate.didTapSeeMore(at: self.index)
+    }
+
+    func textNode(_ textNode: ASTextNode, tappedLinkAttribute attribute: String, value: Any, at point: CGPoint, textRange: NSRange) {
+        print("Did tap link")
+    }
+}
+
+extension ASTextNode {
+    func addLinkDetection(_ text: String, highLightColor: UIColor, delegate: ASTextNodeDelegate) {
+        self.isUserInteractionEnabled = true
+        self.delegate = delegate
+
+        let types: NSTextCheckingResult.CheckingType = [.link]
+        let detector = try? NSDataDetector(types: types.rawValue)
+        let range = NSMakeRange(0, self.attributedText!.string.characters.count)
+        if let attributedText = self.attributedText {
+            let mutableString = NSMutableAttributedString()
+            mutableString.append(attributedText)
+            detector?.enumerateMatches(in: text, range: range) {
+                (result, _, _) in
+                if let fixedRange = result?.range {
+                    mutableString.addAttribute(NSUnderlineColorAttributeName, value: highLightColor, range: fixedRange)
+                    mutableString.addAttribute(NSLinkAttributeName, value: result?.url, range: fixedRange)
+                    mutableString.addAttribute(NSForegroundColorAttributeName, value: highLightColor, range: fixedRange)
+                }
+            }
+            self.attributedText = mutableString
+        }
     }
 }
 

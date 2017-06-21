@@ -12,7 +12,7 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
+    var restrictRotation: Bool = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
 
@@ -29,6 +29,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.makeKeyAndVisible()
 
         return true
+    }
+
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        application.isStatusBarHidden = false
+        if restrictRotation {
+            return UIInterfaceOrientationMask.portrait
+        }
+        else {
+            return UIInterfaceOrientationMask.allButUpsideDown
+        }
+
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

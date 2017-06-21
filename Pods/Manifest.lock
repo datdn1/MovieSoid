@@ -42,12 +42,14 @@ PODS:
     - PINRemoteImage/iOS (= 3.0.0-beta.9)
     - PINRemoteImage/PINCache
     - Texture/Core
+  - youtube-ios-player-helper (0.1.6)
 
 DEPENDENCIES:
   - Moya
   - Moya-ObjectMapper
   - Texture (>= 2.0)
   - Texture/IGListKit
+  - youtube-ios-player-helper (~> 0.1.4)
 
 SPEC CHECKSUMS:
   Alamofire: dc44b1600b800eb63da6a19039a0083d62a6a62d
@@ -60,7 +62,8 @@ SPEC CHECKSUMS:
   PINRemoteImage: e4e02e15a6f96cedbcef2abf1c9c1228dc9897d7
   Result: 128640a6347e8d2ae48b142556739a2d13f90ce6
   Texture: 18664254419f35de27af76399b3b265cbad5740a
+  youtube-ios-player-helper: 21ab92db027c7ff86cb17a3843a3f6eafc8158d2
 
-PODFILE CHECKSUM: cfc1cdad28a407b35c2179de69ab2ea3cc1f1cc8
+PODFILE CHECKSUM: 8a5ccd2e00fc91740a60e9fb3df5ced9840b5324
 
 COCOAPODS: 1.2.1

@@ -50,7 +50,7 @@ class VideoSection: IGListSectionController, IGListSectionType, ASSectionControl
     var videos: VideosInfo?
 
     func nodeBlockForItem(at index: Int) -> ASCellNodeBlock {
-        return { return VideoCell(model: self.videos!.videos[index], height: self.heightCollectionNode) }
+        return { return VideoCell(model: self.videos!.videos[index], delegate: self, height: self.heightCollectionNode) }
     }
 
     func numberOfItems() -> Int {
@@ -62,7 +62,12 @@ class VideoSection: IGListSectionController, IGListSectionType, ASSectionControl
         self.videos = object as? VideosInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    func didSelectItem(at index: Int) {
+        guard let controller = self.viewController as? DetailMovieController, let video = self.videos?.videos[index] else { return }
+        let playerController = PlayVideoController(nibName: "PlayVideoController", bundle: nil)
+        playerController.videoId = video.key
+        controller.navigationController?.pushViewController(playerController, animated: true)
+    }
 
     func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
@@ -73,9 +78,22 @@ class VideoSection: IGListSectionController, IGListSectionType, ASSectionControl
     }
 }
 
+extension VideoSection: VideoCellDelegate {
+    func playVideo(key: String) {
+
+    }
+}
+
+protocol VideoCellDelegate {
+    func playVideo(key: String)
+}
+
 class VideoCell: ASCellNode {
 
     let height: CGFloat
+    let delegate: VideoCellDelegate?
+    let model: Videos
+
     lazy var thumnailVideoImageNode: ASNetworkImageNode = {
         let node = ASNetworkImageNode()
         node.contentMode = .scaleToFill
@@ -90,13 +108,22 @@ class VideoCell: ASCellNode {
     lazy var playButtonNode: ASButtonNode = {
         let node = ASButtonNode()
         node.setImage(#imageLiteral(resourceName: "ic_play"), for: .normal)
+//        node.addTarget(self, action: #selector(playVideo), forControlEvents: .touchUpInside)
         return node
     }()
 
-    init(model: Videos, height: CGFloat) {
+    @objc private func playVideo() {
+        print("Video play")
+        guard let delegate = self.delegate, let key = self.model.key else { return }
+        delegate.playVideo(key: key)
+    }
+
+    init(model: Videos, delegate: VideoCellDelegate?, height: CGFloat) {
         self.height = height
+        self.delegate = delegate
+        self.model = model
         super.init()
-        self.typeTextNode.attributedText = NSAttributedString(string: model.type)
+        self.typeTextNode.attributedText = Helper.attrString(attrs: [NSForegroundColorAttributeName: UIColor.white, NSFontAttributeName : UIFont.boldSystemFont(ofSize: 10)], text: model.type)
         if let videoKey = model.key {
             self.thumnailVideoImageNode.url = URL(string: Constants.URL.ThumbnailBaseURL + videoKey + "/0.jpg")
         }

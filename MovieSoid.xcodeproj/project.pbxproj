@@ -22,6 +22,8 @@
 		281D60781EF590D30037675B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28DB34C51EF36D1300FF0E95 /* LaunchScreen.storyboard */; };
 		281D60791EF590D30037675B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28DB34C31EF36D1300FF0E95 /* Assets.xcassets */; };
 		281D607A1EF590D30037675B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28DB34C01EF36D1300FF0E95 /* Main.storyboard */; };
+		2890F9181EFA1EC500E56754 /* PlayVideoController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2890F9161EFA1EC500E56754 /* PlayVideoController.swift */; };
+		2890F9191EFA1EC500E56754 /* PlayVideoController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2890F9171EFA1EC500E56754 /* PlayVideoController.xib */; };
 		28D4BC791EF4E77500DED334 /* MovieHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D4BC781EF4E77500DED334 /* MovieHeader.swift */; };
 		28D4BC7B1EF519AA00DED334 /* MovieGridCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D4BC7A1EF519AA00DED334 /* MovieGridCell.swift */; };
 		28D4BC7D1EF51AE100DED334 /* MovieBaseCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D4BC7C1EF51AE100DED334 /* MovieBaseCell.swift */; };
@@ -66,6 +68,8 @@
 /* Begin PBXFileReference section */
 		281D60801EF590D30037675B /* MovieSoid UIKit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MovieSoid UIKit.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		281D60811EF590D40037675B /* MovieSoid-UIKit-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "MovieSoid-UIKit-Info.plist"; path = "/Volumes/DATA/iOS/src/My/MovieSoid/MovieSoid-UIKit-Info.plist"; sourceTree = "<absolute>"; };
+		2890F9161EFA1EC500E56754 /* PlayVideoController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlayVideoController.swift; sourceTree = "<group>"; };
+		2890F9171EFA1EC500E56754 /* PlayVideoController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PlayVideoController.xib; sourceTree = "<group>"; };
 		28D4BC781EF4E77500DED334 /* MovieHeader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieHeader.swift; sourceTree = "<group>"; };
 		28D4BC7A1EF519AA00DED334 /* MovieGridCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieGridCell.swift; sourceTree = "<group>"; };
 		28D4BC7C1EF51AE100DED334 /* MovieBaseCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieBaseCell.swift; sourceTree = "<group>"; };
@@ -181,6 +185,8 @@
 				28DE1E6E1EF7662C00A25AF5 /* DetailSections */,
 				28DB34BE1EF36D1300FF0E95 /* MoviesViewController.swift */,
 				28E2C2F31EF6291400488C8D /* DetailMovieController.swift */,
+				2890F9161EFA1EC500E56754 /* PlayVideoController.swift */,
+				2890F9171EFA1EC500E56754 /* PlayVideoController.xib */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -355,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				28DB34C71EF36D1300FF0E95 /* LaunchScreen.storyboard in Resources */,
+				2890F9191EFA1EC500E56754 /* PlayVideoController.xib in Resources */,
 				28DB34C41EF36D1300FF0E95 /* Assets.xcassets in Resources */,
 				28DB34C21EF36D1300FF0E95 /* Main.storyboard in Resources */,
 			);
@@ -462,6 +469,7 @@
 				28DB34D91EF42B6D00FF0E95 /* MovieTableCell.swift in Sources */,
 				28DD531F1EF8BB61001A43DC /* ImagesDetailInfoCell.swift in Sources */,
 				28DB34D11EF37A3400FF0E95 /* MoviesAPI.swift in Sources */,
+				2890F9181EFA1EC500E56754 /* PlayVideoController.swift in Sources */,
 				28DB34DD1EF456D600FF0E95 /* InsetTextNode.swift in Sources */,
 				28DD53231EF8D60D001A43DC /* SimilarDetailInfoCell.swift in Sources */,
 				28DB34DB1EF4367B00FF0E95 /* Constants.swift in Sources */,
@@ -499,7 +507,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7DE4F8T92P;
 				INFOPLIST_FILE = "MovieSoid-UIKit-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_SWIFT_FLAGS = "\"-DUIKIT\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "datdn1.coderschool.MovieSoid-UIKit";
@@ -514,7 +522,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7DE4F8T92P;
 				INFOPLIST_FILE = "MovieSoid-UIKit-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_SWIFT_FLAGS = "\"-DUIKIT\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "datdn1.coderschool.MovieSoid-UIKit";

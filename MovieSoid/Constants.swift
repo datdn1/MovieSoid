@@ -32,6 +32,13 @@ struct Constants {
         static let ReviewsSection: Int = 6
     }
 
+    struct DetailSectionHeight {
+        static let Casting: Int = 220
+        static let Videos: Int = 110
+        static let Images: Int = 220
+        static let SimilarMovie: Int = 220
+    }
+
     struct Color {
         static let primaryColor: UIColor = UIColor(red: 42.0/255, green: 42.0/255, blue: 42.0/255, alpha: 1.0)
         static let headerColor: UIColor = UIColor(red: 54.0/255, green: 54.0/255, blue: 54.0/255, alpha: 1.0)

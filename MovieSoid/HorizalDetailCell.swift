@@ -56,7 +56,7 @@ class HorizalDetailCell: ASCellNode {
         self.controller = controller
         self.heightForNode = height
         super.init()
-        self.titleTextNode.attributedText = NSAttributedString(string: title)
+        self.titleTextNode.attributedText = NSAttributedString(string: title, attributes: [NSFontAttributeName: UIFont.boldSystemFont(ofSize: 14), NSForegroundColorAttributeName: UIColor.white])
         self.automaticallyManagesSubnodes = true
     }
 
