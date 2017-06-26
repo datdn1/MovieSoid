@@ -1,3 +1,4 @@
-# MovieSoid
-Demo Texture + IGListKit (Swift)
+## MovieSoid
+Demo Texture + IGListKit (Swift).
+
 Have fun :laughing:
