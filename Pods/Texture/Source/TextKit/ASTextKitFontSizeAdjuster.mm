@@ -29,8 +29,8 @@
 #define LOG(...)
 
 @interface ASTextKitFontSizeAdjuster()
-@property (nonatomic, readonly) NSLayoutManager *sizingLayoutManager;
-@property (nonatomic, readonly) NSTextContainer *sizingTextContainer;
+@property (nonatomic, strong, readonly) NSLayoutManager *sizingLayoutManager;
+@property (nonatomic, strong, readonly) NSTextContainer *sizingTextContainer;
 @end
 
 @implementation ASTextKitFontSizeAdjuster

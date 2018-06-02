@@ -42,7 +42,7 @@
 
 + (instancetype)centerLayoutSpecWithCenteringOptions:(ASCenterLayoutSpecCenteringOptions)centeringOptions
                                        sizingOptions:(ASCenterLayoutSpecSizingOptions)sizingOptions
-                                               child:(id<ASLayoutElement>)child NS_RETURNS_RETAINED
+                                               child:(id<ASLayoutElement>)child
 {
   return [[self alloc] initWithCenteringOptions:centeringOptions sizingOptions:sizingOptions child:child];
 }

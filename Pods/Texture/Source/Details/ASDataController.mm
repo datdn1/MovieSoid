@@ -17,8 +17,6 @@
 
 #import <AsyncDisplayKit/ASDataController.h>
 
-#include <atomic>
-
 #import <AsyncDisplayKit/_ASHierarchyChangeSet.h>
 #import <AsyncDisplayKit/_ASScopeTimer.h>
 #import <AsyncDisplayKit/ASAssert.h>
@@ -56,8 +54,6 @@ NSString * const ASCollectionInvalidUpdateException = @"ASCollectionInvalidUpdat
 
 typedef dispatch_block_t ASDataControllerCompletionBlock;
 
-typedef void (^ASDataControllerSynchronizationBlock)();
-
 @interface ASDataController () {
   id<ASDataControllerLayoutDelegate> _layoutDelegate;
 
@@ -69,13 +65,9 @@ typedef void (^ASDataControllerSynchronizationBlock)();
   ASMainSerialQueue *_mainSerialQueue;
 
   dispatch_queue_t _editingTransactionQueue;  // Serial background queue.  Dispatches concurrent layout and manages _editingNodes.
-  dispatch_group_t _editingTransactionGroup;  // Group of all edit transaction blocks. Useful for waiting.
-  std::atomic<int> _editingTransactionGroupCount;
+  dispatch_group_t _editingTransactionGroup;     // Group of all edit transaction blocks. Useful for waiting.
   
   BOOL _initialReloadDataHasBeenCalled;
-
-  BOOL _synchronized;
-  NSMutableSet<ASDataControllerSynchronizationBlock> *_onDidFinishSynchronizingBlocks;
 
   struct {
     unsigned int supplementaryNodeKindsInSections:1;
@@ -87,8 +79,8 @@ typedef void (^ASDataControllerSynchronizationBlock)();
   } _dataSourceFlags;
 }
 
-@property (copy) ASElementMap *pendingMap;
-@property (copy) ASElementMap *visibleMap;
+@property (atomic, copy, readwrite) ASElementMap *pendingMap;
+@property (atomic, copy, readwrite) ASElementMap *visibleMap;
 @end
 
 @implementation ASDataController
@@ -106,7 +98,7 @@ typedef void (^ASDataControllerSynchronizationBlock)();
   
   _dataSourceFlags.supplementaryNodeKindsInSections = [_dataSource respondsToSelector:@selector(dataController:supplementaryNodeKindsInSections:)];
   _dataSourceFlags.supplementaryNodesOfKindInSection = [_dataSource respondsToSelector:@selector(dataController:supplementaryNodesOfKind:inSection:)];
-  _dataSourceFlags.supplementaryNodeBlockOfKindAtIndexPath = [_dataSource respondsToSelector:@selector(dataController:supplementaryNodeBlockOfKind:atIndexPath:shouldAsyncLayout:)];
+  _dataSourceFlags.supplementaryNodeBlockOfKindAtIndexPath = [_dataSource respondsToSelector:@selector(dataController:supplementaryNodeBlockOfKind:atIndexPath:)];
   _dataSourceFlags.constrainedSizeForNodeAtIndexPath = [_dataSource respondsToSelector:@selector(dataController:constrainedSizeForNodeAtIndexPath:)];
   _dataSourceFlags.constrainedSizeForSupplementaryNodeOfKindAtIndexPath = [_dataSource respondsToSelector:@selector(dataController:constrainedSizeForSupplementaryNodeOfKind:atIndexPath:)];
   _dataSourceFlags.contextForSection = [_dataSource respondsToSelector:@selector(dataController:contextForSection:)];
@@ -120,9 +112,6 @@ typedef void (^ASDataControllerSynchronizationBlock)();
   _nextSectionID = 0;
   
   _mainSerialQueue = [[ASMainSerialQueue alloc] init];
-
-  _synchronized = YES;
-  _onDidFinishSynchronizingBlocks = [NSMutableSet set];
   
   const char *queueName = [[NSString stringWithFormat:@"org.AsyncDisplayKit.ASDataController.editingTransactionQueue:%p", self] cStringUsingEncoding:NSASCIIStringEncoding];
   _editingTransactionQueue = dispatch_queue_create(queueName, DISPATCH_QUEUE_SERIAL);
@@ -363,8 +352,7 @@ typedef void (^ASDataControllerSynchronizationBlock)();
         nodeBlock = [dataSource dataController:self nodeBlockAtIndexPath:indexPath];
       }
     } else {
-      BOOL shouldAsyncLayout = YES;
-      nodeBlock = [dataSource dataController:self supplementaryNodeBlockOfKind:kind atIndexPath:indexPath shouldAsyncLayout:&shouldAsyncLayout];
+      nodeBlock = [dataSource dataController:self supplementaryNodeBlockOfKind:kind atIndexPath:indexPath];
     }
     
     ASSizeRange constrainedSize = ASSizeRangeUnconstrained;
@@ -452,63 +440,35 @@ typedef void (^ASDataControllerSynchronizationBlock)();
 - (BOOL)isProcessingUpdates
 {
   ASDisplayNodeAssertMainThread();
-  return _mainSerialQueue.numberOfScheduledBlocks > 0 || _editingTransactionGroupCount > 0;
+  if (_mainSerialQueue.numberOfScheduledBlocks > 0) {
+    return YES;
+  } else if (dispatch_group_wait(_editingTransactionGroup, DISPATCH_TIME_NOW) != 0) {
+    // After waiting for zero duration, a nonzero value is returned if blocks are still running.
+    return YES;
+  }
+  // Both the _mainSerialQueue and _editingTransactionQueue are drained; we are fully quiesced.
+  return NO;
 }
 
-- (void)onDidFinishProcessingUpdates:(void (^)())completion
+- (void)onDidFinishProcessingUpdates:(nullable void (^)())completion
 {
   ASDisplayNodeAssertMainThread();
-  if (!completion) {
-    return;
-  }
   if ([self isProcessingUpdates] == NO) {
     ASPerformBlockOnMainThread(completion);
   } else {
     dispatch_async(_editingTransactionQueue, ^{
       // Retry the block. If we're done processing updates, it'll run immediately, otherwise
       // wait again for updates to quiesce completely.
-      // Don't use _mainSerialQueue so that we don't affect -isProcessingUpdates.
-      dispatch_async(dispatch_get_main_queue(), ^{
+      [_mainSerialQueue performBlockOnMainThread:^{
         [self onDidFinishProcessingUpdates:completion];
-      });
+      }];
     });
-  }
-}
-
-- (BOOL)isSynchronized {
-  return _synchronized;
-}
-
-- (void)onDidFinishSynchronizing:(void (^)())completion {
-  ASDisplayNodeAssertMainThread();
-  if (!completion) {
-    return;
-  }
-  if ([self isSynchronized]) {
-    ASPerformBlockOnMainThread(completion);
-  } else {
-    // Hang on to the completion block so that it gets called the next time view is synchronized to data.
-    [_onDidFinishSynchronizingBlocks addObject:[completion copy]];
   }
 }
 
 - (void)updateWithChangeSet:(_ASHierarchyChangeSet *)changeSet
 {
   ASDisplayNodeAssertMainThread();
-
-  _synchronized = NO;
-
-  [changeSet addCompletionHandler:^(BOOL finished) {
-    _synchronized = YES;
-    [self onDidFinishProcessingUpdates:^{
-      if (_synchronized) {
-        for (ASDataControllerSynchronizationBlock block in _onDidFinishSynchronizingBlocks) {
-          block();
-        }
-        [_onDidFinishSynchronizingBlocks removeAllObjects];
-      }
-    }];
-  }];
   
   if (changeSet.includesReloadData) {
     if (_initialReloadDataHasBeenCalled) {
@@ -566,7 +526,7 @@ typedef void (^ASDataControllerSynchronizationBlock)();
 
   BOOL canDelegate = (self.layoutDelegate != nil);
   ASElementMap *newMap;
-  ASCollectionLayoutContext *layoutContext;
+  id layoutContext;
   {
     as_activity_scope(as_activity_create("Latch new data for collection update", changeSet.rootActivity, OS_ACTIVITY_FLAG_DEFAULT));
 
@@ -598,7 +558,6 @@ typedef void (^ASDataControllerSynchronizationBlock)();
   as_log_debug(ASCollectionLog(), "New content: %@", newMap.smallDescription);
 
   Class<ASDataControllerLayoutDelegate> layoutDelegateClass = [self.layoutDelegate class];
-  ++_editingTransactionGroupCount;
   dispatch_group_async(_editingTransactionGroup, _editingTransactionQueue, ^{
     __block __unused os_activity_scope_state_s preparationScope = {}; // unused if deployment target < iOS10
     as_activity_scope_enter(as_activity_create("Prepare nodes for collection update", AS_ACTIVITY_CURRENT, OS_ACTIVITY_FLAG_DEFAULT), &preparationScope);
@@ -618,7 +577,6 @@ typedef void (^ASDataControllerSynchronizationBlock)();
           self.visibleMap = newMap;
         }];
       }];
-      --_editingTransactionGroupCount;
     };
 
     // Step 3: Call the layout delegate if possible. Otherwise, allocate and layout all elements
@@ -626,17 +584,9 @@ typedef void (^ASDataControllerSynchronizationBlock)();
       [layoutDelegateClass calculateLayoutWithContext:layoutContext];
       completion();
     } else {
-      NSMutableArray<ASCollectionElement *> *elementsToProcess = [NSMutableArray array];
-      for (ASCollectionElement *element in newMap) {
-        ASCellNode *nodeIfAllocated = element.nodeIfAllocated;
-        if (nodeIfAllocated.shouldUseUIKitCell) {
-          // If the node exists and we know it is a passthrough cell, we know it will never have a .calculatedLayout.
-          continue;
-        } else if (nodeIfAllocated.calculatedLayout == nil) {
-          // If the node hasn't been allocated, or it doesn't have a valid layout, let's process it.
-          [elementsToProcess addObject:element];
-        }
-      }
+      NSArray<ASCollectionElement *> *elementsToProcess = ASArrayByFlatMapping(newMap,
+                                                                               ASCollectionElement *element,
+                                                                               (element.nodeIfAllocated.calculatedLayout == nil ? element : nil));
       [self _allocateNodesFromElements:elementsToProcess completion:completion];
     }
   });
@@ -771,9 +721,8 @@ typedef void (^ASDataControllerSynchronizationBlock)();
 
 #pragma mark - Relayout
 
-- (void)relayoutNodes:(id<NSFastEnumeration>)nodes nodesSizeChanged:(NSMutableArray<ASCellNode *> *)nodesSizesChanged
+- (void)relayoutNodes:(id<NSFastEnumeration>)nodes nodesSizeChanged:(NSMutableArray *)nodesSizesChanged
 {
-  NSParameterAssert(nodes);
   NSParameterAssert(nodesSizesChanged);
   
   ASDisplayNodeAssertMainThread();
@@ -871,15 +820,6 @@ typedef void (^ASDataControllerSynchronizationBlock)();
       }
     }];
   });
-}
-
-- (void)clearData
-{
-  ASDisplayNodeAssertMainThread();
-  if (_initialReloadDataHasBeenCalled) {
-    [self waitUntilAllUpdatesAreProcessed];
-    self.visibleMap = self.pendingMap = [[ASElementMap alloc] init];
-  }
 }
 
 # pragma mark - Helper methods

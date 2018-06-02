@@ -1,18 +1,12 @@
 //
 //  ASTextLayout.h
-//  Texture
+//  Modified from YYText <https://github.com/ibireme/YYText>
 //
-//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
-//  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
-//  grant of patent rights can be found in the PATENTS file in the same directory.
+//  Created by ibireme on 15/3/3.
+//  Copyright (c) 2015 ibireme.
 //
-//  Modifications to this file made after 4/13/2017 are: Copyright (c) through the present,
-//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
+//  This source code is licensed under the MIT-style license found in the
+//  LICENSE file in the root directory of this source tree.
 //
 
 #import <UIKit/UIKit.h>
@@ -59,13 +53,13 @@ extern const CGSize ASTextContainerMaxSize;
 @interface ASTextContainer : NSObject <NSCoding, NSCopying>
 
 /// Creates a container with the specified size. @param size The size.
-+ (instancetype)containerWithSize:(CGSize)size NS_RETURNS_RETAINED;
++ (instancetype)containerWithSize:(CGSize)size;
 
 /// Creates a container with the specified size and insets. @param size The size. @param insets The text insets.
-+ (instancetype)containerWithSize:(CGSize)size insets:(UIEdgeInsets)insets NS_RETURNS_RETAINED;
++ (instancetype)containerWithSize:(CGSize)size insets:(UIEdgeInsets)insets;
 
 /// Creates a container with the specified path. @param path The path.
-+ (instancetype)containerWithPath:(nullable UIBezierPath *)path NS_RETURNS_RETAINED;
++ (instancetype)containerWithPath:(nullable UIBezierPath *)path;
 
 /// The constrained size. (if the size is larger than ASTextContainerMaxSize, it will be clipped)
 @property CGSize size;
@@ -126,7 +120,7 @@ extern const CGSize ASTextContainerMaxSize;
  to a specified value, lets each line of height be the same.
  */
 @interface ASTextLinePositionSimpleModifier : NSObject <ASTextLinePositionModifier>
-@property CGFloat fixedLineHeight; ///< The fixed line height (distance between two baseline).
+@property (assign) CGFloat fixedLineHeight; ///< The fixed line height (distance between two baseline).
 @end
 
 
@@ -220,9 +214,9 @@ extern const CGSize ASTextContainerMaxSize;
 ///=============================================================================
 
 ///< The text container
-@property (nonatomic, readonly) ASTextContainer *container;
+@property (nonatomic, strong, readonly) ASTextContainer *container;
 ///< The full text
-@property (nonatomic, readonly) NSAttributedString *text;
+@property (nonatomic, strong, readonly) NSAttributedString *text;
 ///< The text range in full text
 @property (nonatomic, readonly) NSRange range;
 ///< CTFrameSetter
@@ -230,17 +224,17 @@ extern const CGSize ASTextContainerMaxSize;
 ///< CTFrame
 @property (nonatomic, readonly) CTFrameRef frame;
 ///< Array of `ASTextLine`, no truncated
-@property (nonatomic, readonly) NSArray<ASTextLine *> *lines;
+@property (nonatomic, strong, readonly) NSArray<ASTextLine *> *lines;
 ///< ASTextLine with truncated token, or nil
-@property (nullable, nonatomic, readonly) ASTextLine *truncatedLine;
+@property (nullable, nonatomic, strong, readonly) ASTextLine *truncatedLine;
 ///< Array of `ASTextAttachment`
-@property (nullable, nonatomic, readonly) NSArray<ASTextAttachment *> *attachments;
+@property (nullable, nonatomic, strong, readonly) NSArray<ASTextAttachment *> *attachments;
 ///< Array of NSRange(wrapped by NSValue) in text
-@property (nullable, nonatomic, readonly) NSArray<NSValue *> *attachmentRanges;
+@property (nullable, nonatomic, strong, readonly) NSArray<NSValue *> *attachmentRanges;
 ///< Array of CGRect(wrapped by NSValue) in container
-@property (nullable, nonatomic, readonly) NSArray<NSValue *> *attachmentRects;
+@property (nullable, nonatomic, strong, readonly) NSArray<NSValue *> *attachmentRects;
 ///< Set of Attachment (UIImage/UIView/CALayer)
-@property (nullable, nonatomic, readonly) NSSet *attachmentContentsSet;
+@property (nullable, nonatomic, strong, readonly) NSSet *attachmentContentsSet;
 ///< Number of rows
 @property (nonatomic, readonly) NSUInteger rowCount;
 ///< Visible text range

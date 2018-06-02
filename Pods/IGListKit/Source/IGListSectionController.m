@@ -1,8 +1,10 @@
 /**
  * Copyright (c) 2016-present, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
  */
 
 #import "IGListSectionControllerInternal.h"
@@ -81,23 +83,5 @@ void IGListSectionControllerPopThread(void) {
 - (void)didUpdateToObject:(id)object {}
 
 - (void)didSelectItemAtIndex:(NSInteger)index {}
-
-- (void)didDeselectItemAtIndex:(NSInteger)index {}
-
-- (void)didHighlightItemAtIndex:(NSInteger)index {}
-
-- (void)didUnhighlightItemAtIndex:(NSInteger)index {}
-    
-- (BOOL)canMoveItemAtIndex:(NSInteger)index {
-    return NO;
-}
-
-- (BOOL)canMoveItemAtIndex:(NSInteger)sourceItemIndex toIndex:(NSInteger)destinationItemIndex {
-    return [self canMoveItemAtIndex:sourceItemIndex];
-}
-    
-- (void)moveObjectFromIndex:(NSInteger)sourceIndex toIndex:(NSInteger)destinationIndex {
-    IGFailAssert(@"Section controller %@ must override %s if interactive reordering is enabled.", self, __PRETTY_FUNCTION__);
-}
 
 @end

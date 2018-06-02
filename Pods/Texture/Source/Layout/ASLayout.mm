@@ -23,10 +23,9 @@
 #import <AsyncDisplayKit/ASLayoutSpecUtilities.h>
 #import <AsyncDisplayKit/ASLayoutSpec+Subclasses.h>
 
-#import <AsyncDisplayKit/ASEqualityHelpers.h>
 #import <AsyncDisplayKit/ASInternalHelpers.h>
 #import <AsyncDisplayKit/ASObjectDescriptionHelpers.h>
-#import <AsyncDisplayKit/ASRectMap.h>
+#import <AsyncDisplayKit/ASRectTable.h>
 
 CGPoint const ASPointNull = {NAN, NAN};
 
@@ -79,14 +78,14 @@ ASDISPLAYNODE_INLINE AS_WARN_UNUSED_RESULT BOOL ASLayoutIsFlattened(ASLayout *la
 /*
  * Caches all sublayouts if set to YES or destroys the sublayout cache if set to NO. Defaults to NO
  */
-@property (nonatomic) BOOL retainSublayoutLayoutElements;
+@property (nonatomic, assign) BOOL retainSublayoutLayoutElements;
 
 /**
  * Array for explicitly retain sublayout layout elements in case they are created and references in layoutSpecThatFits: and no one else will hold a strong reference on it
  */
-@property (nonatomic) NSMutableArray<id<ASLayoutElement>> *sublayoutLayoutElements;
+@property (nonatomic, strong) NSMutableArray<id<ASLayoutElement>> *sublayoutLayoutElements;
 
-@property (nonatomic, readonly) ASRectMap *elementToRectMap;
+@property (nonatomic, strong, readonly) ASRectTable<id<ASLayoutElement>, id> *elementToRectTable;
 
 @end
 
@@ -143,9 +142,9 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
     _sublayouts = sublayouts != nil ? [sublayouts copy] : @[];
 
     if (_sublayouts.count > 0) {
-      _elementToRectMap = [ASRectMap rectMapForWeakObjectPointers];
+      _elementToRectTable = [ASRectTable rectTableForWeakObjectPointers];
       for (ASLayout *layout in sublayouts) {
-        [_elementToRectMap setRect:layout.frame forKey:layout.layoutElement];
+        [_elementToRectTable setRect:layout.frame forKey:layout.layoutElement];
       }
     }
     
@@ -166,7 +165,7 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
 + (instancetype)layoutWithLayoutElement:(id<ASLayoutElement>)layoutElement
                                    size:(CGSize)size
                                position:(CGPoint)position
-                             sublayouts:(nullable NSArray<ASLayout *> *)sublayouts NS_RETURNS_RETAINED
+                             sublayouts:(nullable NSArray<ASLayout *> *)sublayouts
 {
   return [[self alloc] initWithLayoutElement:layoutElement
                                         size:size
@@ -176,7 +175,7 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
 
 + (instancetype)layoutWithLayoutElement:(id<ASLayoutElement>)layoutElement
                                    size:(CGSize)size
-                             sublayouts:(nullable NSArray<ASLayout *> *)sublayouts NS_RETURNS_RETAINED
+                             sublayouts:(nullable NSArray<ASLayout *> *)sublayouts
 {
   return [self layoutWithLayoutElement:layoutElement
                                   size:size
@@ -184,7 +183,7 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
                             sublayouts:sublayouts];
 }
 
-+ (instancetype)layoutWithLayoutElement:(id<ASLayoutElement>)layoutElement size:(CGSize)size NS_RETURNS_RETAINED
++ (instancetype)layoutWithLayoutElement:(id<ASLayoutElement>)layoutElement size:(CGSize)size
 {
   return [self layoutWithLayoutElement:layoutElement
                                   size:size
@@ -216,7 +215,7 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
 
 #pragma mark - Layout Flattening
 
-- (ASLayout *)filteredNodeLayoutTree NS_RETURNS_RETAINED
+- (ASLayout *)filteredNodeLayoutTree
 {
   if (ASLayoutIsFlattened(self)) {
     // All flattened layouts must have this flag enabled
@@ -282,12 +281,11 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
   }
 
   if (!CGSizeEqualToSize(_size, layout.size)) return NO;
-
-  if (!((ASPointIsNull(self.position) && ASPointIsNull(layout.position))
-        || CGPointEqualToPoint(self.position, layout.position))) return NO;
+  if (!CGPointEqualToPoint(_position, layout.position)) return NO;
   if (_layoutElement != layout.layoutElement) return NO;
 
-  if (!ASObjectIsEqual(_sublayouts, layout.sublayouts)) {
+  NSArray *sublayouts = layout.sublayouts;
+  if (sublayouts != _sublayouts && (sublayouts == nil || _sublayouts == nil || ![_sublayouts isEqual:sublayouts])) {
     return NO;
   }
 
@@ -303,7 +301,7 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
 
 - (CGRect)frameForElement:(id<ASLayoutElement>)layoutElement
 {
-  return _elementToRectMap ? [_elementToRectMap rectForKey:layoutElement] : CGRectNull;
+  return _elementToRectTable ? [_elementToRectTable rectForKey:layoutElement] : CGRectNull;
 }
 
 - (CGRect)frame

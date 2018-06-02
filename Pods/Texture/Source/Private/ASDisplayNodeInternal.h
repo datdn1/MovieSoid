@@ -76,10 +76,8 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
 @interface ASDisplayNode () <_ASTransitionContextCompletionDelegate>
 {
 @package
-  ASDN::RecursiveMutex __instanceLock__;
-
   _ASPendingState *_pendingViewState;
-  ASInterfaceState _pendingInterfaceState;
+
   UIView *_view;
   CALayer *_layer;
 
@@ -204,15 +202,6 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
   UIBezierPath *_accessibilityPath;
   BOOL _isAccessibilityContainer;
 
-  // These properties are used on iOS 10 and lower, where safe area is not supported by UIKit.
-  UIEdgeInsets _fallbackSafeAreaInsets;
-  BOOL _fallbackInsetsLayoutMarginsFromSafeArea;
-
-  BOOL _automaticallyRelayoutOnSafeAreaChanges;
-  BOOL _automaticallyRelayoutOnLayoutMarginsChanges;
-
-  BOOL _isViewControllerRoot;
-
   // performance measurement
   ASDisplayNodePerformanceMeasurementOptions _measurementOptions;
   NSTimeInterval _layoutSpecTotalTime;
@@ -246,10 +235,10 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
 + (void)scheduleNodeForRecursiveDisplay:(ASDisplayNode *)node;
 
 /// The _ASDisplayLayer backing the node, if any.
-@property (nullable, nonatomic, readonly) _ASDisplayLayer *asyncLayer;
+@property (nullable, nonatomic, readonly, strong) _ASDisplayLayer *asyncLayer;
 
 /// Bitmask to check which methods an object overrides.
-@property (nonatomic, readonly) ASDisplayNodeMethodOverrides methodOverrides;
+@property (nonatomic, assign, readonly) ASDisplayNodeMethodOverrides methodOverrides;
 
 /**
  * Invoked before a call to setNeedsLayout to the underlying view
@@ -286,13 +275,6 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
 - (void)__incrementVisibilityNotificationsDisabled;
 - (void)__decrementVisibilityNotificationsDisabled;
 
-// Helper methods for UIResponder forwarding
-- (BOOL)__canBecomeFirstResponder;
-- (BOOL)__becomeFirstResponder;
-- (BOOL)__canResignFirstResponder;
-- (BOOL)__resignFirstResponder;
-- (BOOL)__isFirstResponder;
-
 /// Helper method to summarize whether or not the node run through the display process
 - (BOOL)_implementsDisplay;
 
@@ -308,7 +290,7 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
 /// Alternative initialiser for backing with a custom layer class.  Supports asynchronous display with _ASDisplayLayer subclasses.
 - (instancetype)initWithLayerClass:(Class)layerClass;
 
-@property (nonatomic) CGFloat contentsScaleForDisplay;
+@property (nonatomic, assign) CGFloat contentsScaleForDisplay;
 
 - (void)applyPendingViewState;
 
@@ -324,7 +306,7 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
  *
  * @see ASInterfaceState
  */
-@property (nonatomic) BOOL interfaceStateSuspended;
+@property (nonatomic, assign) BOOL interfaceStateSuspended;
 
 /**
  * This method has proven helpful in a few rare scenarios, similar to a category extension on UIView,
@@ -337,23 +319,18 @@ FOUNDATION_EXPORT NSString * const ASRenderingEngineDidDisplayNodesScheduledBefo
 /**
  * Whether this node rasterizes its descendants. See -enableSubtreeRasterization.
  */
-@property (readonly) BOOL rasterizesSubtree;
+@property (atomic, readonly) BOOL rasterizesSubtree;
 
 /**
  * Called if a gesture recognizer was attached to an _ASDisplayView
  */
 - (void)nodeViewDidAddGestureRecognizer;
 
-// Recalculates fallbackSafeAreaInsets for the subnodes
-- (void)_fallbackUpdateSafeAreaOnChildren;
-
 @end
 
 @interface ASDisplayNode (InternalPropertyBridge)
 
-@property (nonatomic) CGFloat layerCornerRadius;
-
-- (BOOL)_locked_insetsLayoutMarginsFromSafeArea;
+@property (nonatomic, assign) CGFloat layerCornerRadius;
 
 @end
 

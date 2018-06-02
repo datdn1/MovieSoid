@@ -25,7 +25,6 @@
   
   NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
   
-#if TARGET_OS_IOS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   CGFloat lineSpacing;
@@ -33,7 +32,6 @@
     style.lineSpacing = lineSpacing;
   }
 #pragma clang diagnostic pop
-#endif
   
   CGFloat paragraphSpacing;
   if (CTParagraphStyleGetValueForSpecifier(CTStyle, kCTParagraphStyleSpecifierParagraphSpacing, sizeof(CGFloat), &paragraphSpacing)) {
@@ -116,7 +114,6 @@
   CTParagraphStyleSetting set[kCTParagraphStyleSpecifierCount] = { };
   int count = 0;
   
-#if TARGET_OS_IOS
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   CGFloat lineSpacing = self.lineSpacing;
@@ -125,7 +122,6 @@
   set[count].value = &lineSpacing;
   count++;
 #pragma clang diagnostic pop
-#endif
   
   CGFloat paragraphSpacing = self.paragraphSpacing;
   set[count].spec = kCTParagraphStyleSpecifierParagraphSpacing;

@@ -60,7 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * @discussion When being used as a sublayout, this property must not equal CGPointNull.
  */
-@property (nonatomic) CGPoint position;
+@property (nonatomic, assign, readwrite) CGPoint position;
 
 @end
 

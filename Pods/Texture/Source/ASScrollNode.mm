@@ -18,10 +18,9 @@
 #import <AsyncDisplayKit/ASScrollNode.h>
 #import <AsyncDisplayKit/ASDisplayNodeExtras.h>
 #import <AsyncDisplayKit/ASDisplayNode+FrameworkPrivate.h>
-#import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 #import <AsyncDisplayKit/ASLayout.h>
 #import <AsyncDisplayKit/_ASDisplayLayer.h>
-#import <AsyncDisplayKit/ASThread.h>
 
 @interface ASScrollView : UIScrollView
 @end
@@ -82,7 +81,7 @@
                      restrictedToSize:(ASLayoutElementSize)size
                  relativeToParentSize:(CGSize)parentSize
 {
-  ASLockScopeSelf();  // Lock for using our instance variables.
+  ASDN::MutexLocker l(__instanceLock__);  // Lock for using our instance variables.
 
   ASSizeRange contentConstrainedSize = constrainedSize;
   if (ASScrollDirectionContainsVerticalDirection(_scrollableDirections)) {
@@ -100,12 +99,10 @@
     // To understand this code, imagine we're containing a horizontal stack set within a vertical table node.
     // Our parentSize is fixed ~375pt width, but 0 - INF height.  Our stack measures 1000pt width, 50pt height.
     // In this case, we want our scrollNode.bounds to be 375pt wide, and 50pt high.  ContentSize 1000pt, 50pt.
-    // We can achieve this behavior by:
-    // 1. Always set contentSize to layout.size.
-    // 2. Set bounds to a size that is calculated by clamping parentSize against constrained size,
+    // We can achieve this behavior by: 1. Always set contentSize to layout.size.  2. Set bounds to parentSize,
     // unless one dimension is not defined, in which case adopt the contentSize for that dimension.
     _contentCalculatedSizeFromLayout = layout.size;
-    CGSize selfSize = ASSizeRangeClamp(constrainedSize, parentSize);
+    CGSize selfSize = parentSize;
     if (ASPointsValidForLayout(selfSize.width) == NO) {
       selfSize.width = _contentCalculatedSizeFromLayout.width;
     }
@@ -124,7 +121,7 @@
 {
   [super layout];
   
-  ASLockScopeSelf();  // Lock for using our two instance variables.
+  ASDN::MutexLocker l(__instanceLock__);  // Lock for using our two instance variables.
   
   if (_automaticallyManagesContentSize) {
     CGSize contentSize = _contentCalculatedSizeFromLayout;
@@ -138,13 +135,13 @@
 
 - (BOOL)automaticallyManagesContentSize
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _automaticallyManagesContentSize;
 }
 
 - (void)setAutomaticallyManagesContentSize:(BOOL)automaticallyManagesContentSize
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   _automaticallyManagesContentSize = automaticallyManagesContentSize;
   if (_automaticallyManagesContentSize == YES
       && ASScrollDirectionContainsVerticalDirection(_scrollableDirections) == NO
@@ -157,17 +154,14 @@
 
 - (ASScrollDirection)scrollableDirections
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _scrollableDirections;
 }
 
 - (void)setScrollableDirections:(ASScrollDirection)scrollableDirections
 {
-  ASLockScopeSelf();
-  if (_scrollableDirections != scrollableDirections) {
-    _scrollableDirections = scrollableDirections;
-    [self setNeedsLayout];
-  }
+  ASDN::MutexLocker l(__instanceLock__);
+  _scrollableDirections = scrollableDirections;
 }
 
 @end

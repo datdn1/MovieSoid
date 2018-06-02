@@ -21,6 +21,7 @@
 #import <AsyncDisplayKit/ASDisplayNodeInternal.h>
 #import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
 #import <AsyncDisplayKit/ASDisplayNode+FrameworkPrivate.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 #import <AsyncDisplayKit/ASPendingStateController.h>
 
 /**
@@ -95,6 +96,16 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
  */
 @implementation ASDisplayNode (UIViewBridge)
 
+- (BOOL)canBecomeFirstResponder
+{
+  return NO;
+}
+
+- (BOOL)canResignFirstResponder
+{
+  return YES;
+}
+
 #if TARGET_OS_TV
 // Focus Engine
 - (BOOL)canBecomeFocused
@@ -135,34 +146,23 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
 }
 #endif
 
-- (BOOL)canBecomeFirstResponder
-{
-  ASDisplayNodeAssertMainThread();
-  return [self __canBecomeFirstResponder];
-}
-
-- (BOOL)canResignFirstResponder
-{
-  ASDisplayNodeAssertMainThread();
-  return [self __canResignFirstResponder];
-}
-
 - (BOOL)isFirstResponder
 {
   ASDisplayNodeAssertMainThread();
-  return [self __isFirstResponder];
+  return _view != nil && [_view isFirstResponder];
 }
 
+// Note: this implicitly loads the view if it hasn't been loaded yet.
 - (BOOL)becomeFirstResponder
 {
   ASDisplayNodeAssertMainThread();
-  return [self __becomeFirstResponder];
+  return !self.layerBacked && [self canBecomeFirstResponder] && [self.view becomeFirstResponder];
 }
 
 - (BOOL)resignFirstResponder
 {
   ASDisplayNodeAssertMainThread();
-  return [self __resignFirstResponder];
+  return !self.layerBacked && [self canResignFirstResponder] && [_view resignFirstResponder];
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender
@@ -186,12 +186,17 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
 - (CGFloat)cornerRadius
 {
   ASDN::MutexLocker l(__instanceLock__);
-  return _cornerRadius;
+  if (_cornerRoundingType == ASCornerRoundingTypeDefaultSlowCALayer) {
+    return self.layerCornerRadius;
+  } else {
+    return _cornerRadius;
+  }
 }
 
 - (void)setCornerRadius:(CGFloat)newCornerRadius
 {
-  [self updateCornerRoundingWithType:self.cornerRoundingType cornerRadius:newCornerRadius];
+  ASDN::MutexLocker l(__instanceLock__);
+  [self updateCornerRoundingWithType:_cornerRoundingType cornerRadius:newCornerRadius];
 }
 
 - (ASCornerRoundingType)cornerRoundingType
@@ -202,7 +207,8 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
 
 - (void)setCornerRoundingType:(ASCornerRoundingType)newRoundingType
 {
-  [self updateCornerRoundingWithType:newRoundingType cornerRadius:self.cornerRadius];
+  ASDN::MutexLocker l(__instanceLock__);
+  [self updateCornerRoundingWithType:newRoundingType cornerRadius:_cornerRadius];
 }
 
 - (NSString *)contentsGravity
@@ -848,113 +854,21 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
 - (UISemanticContentAttribute)semanticContentAttribute
 {
   _bridge_prologue_read;
-  return _getFromViewOnly(semanticContentAttribute);
+  if (AS_AT_LEAST_IOS9) {
+    return _getFromViewOnly(semanticContentAttribute);
+  }
+  return UISemanticContentAttributeUnspecified;
 }
 
 - (void)setSemanticContentAttribute:(UISemanticContentAttribute)semanticContentAttribute
 {
   _bridge_prologue_write;
-  _setToViewOnly(semanticContentAttribute, semanticContentAttribute);
+  if (AS_AT_LEAST_IOS9) {
+    _setToViewOnly(semanticContentAttribute, semanticContentAttribute);
 #if YOGA
-  [self semanticContentAttributeDidChange:semanticContentAttribute];
+    [self semanticContentAttributeDidChange:semanticContentAttribute];
 #endif
-}
-
-- (UIEdgeInsets)layoutMargins
-{
-  _bridge_prologue_read;
-  ASDisplayNodeAssert(!_flags.layerBacked, @"Danger: this property is undefined on layer-backed nodes.");
-  UIEdgeInsets margins = _getFromViewOnly(layoutMargins);
-
-  if (!AS_AT_LEAST_IOS11 && self.insetsLayoutMarginsFromSafeArea) {
-    UIEdgeInsets safeArea = self.safeAreaInsets;
-    margins = ASConcatInsets(margins, safeArea);
   }
-
-  return margins;
-}
-
-- (void)setLayoutMargins:(UIEdgeInsets)layoutMargins
-{
-  _bridge_prologue_write;
-  ASDisplayNodeAssert(!_flags.layerBacked, @"Danger: this property is undefined on layer-backed nodes.");
-  _setToViewOnly(layoutMargins, layoutMargins);
-}
-
-- (BOOL)preservesSuperviewLayoutMargins
-{
-  _bridge_prologue_read;
-  ASDisplayNodeAssert(!_flags.layerBacked, @"Danger: this property is undefined on layer-backed nodes.");
-  return _getFromViewOnly(preservesSuperviewLayoutMargins);
-}
-
-- (void)setPreservesSuperviewLayoutMargins:(BOOL)preservesSuperviewLayoutMargins
-{
-  _bridge_prologue_write;
-  ASDisplayNodeAssert(!_flags.layerBacked, @"Danger: this property is undefined on layer-backed nodes.");
-  _setToViewOnly(preservesSuperviewLayoutMargins, preservesSuperviewLayoutMargins);
-}
-
-- (void)layoutMarginsDidChange
-{
-  ASDisplayNodeAssertMainThread();
-
-  if (self.automaticallyRelayoutOnLayoutMarginsChanges) {
-    [self setNeedsLayout];
-  }
-}
-
-- (UIEdgeInsets)safeAreaInsets
-{
-  _bridge_prologue_read;
-
-  if (AS_AVAILABLE_IOS(11.0)) {
-    if (!_flags.layerBacked && __loaded(self)) {
-      return self.view.safeAreaInsets;
-    }
-  }
-  return _fallbackSafeAreaInsets;
-}
-
-- (BOOL)insetsLayoutMarginsFromSafeArea
-{
-  _bridge_prologue_read;
-
-  return [self _locked_insetsLayoutMarginsFromSafeArea];
-}
-
-- (void)setInsetsLayoutMarginsFromSafeArea:(BOOL)insetsLayoutMarginsFromSafeArea
-{
-  ASDisplayNodeAssertThreadAffinity(self);
-  BOOL shouldNotifyAboutUpdate;
-  {
-    _bridge_prologue_write;
-
-    _fallbackInsetsLayoutMarginsFromSafeArea = insetsLayoutMarginsFromSafeArea;
-
-    if (AS_AVAILABLE_IOS(11.0)) {
-      if (!_flags.layerBacked) {
-        _setToViewOnly(insetsLayoutMarginsFromSafeArea, insetsLayoutMarginsFromSafeArea);
-      }
-    }
-
-    shouldNotifyAboutUpdate = __loaded(self) && (!AS_AT_LEAST_IOS11 || _flags.layerBacked);
-  }
-
-  if (shouldNotifyAboutUpdate) {
-    [self layoutMarginsDidChange];
-  }
-}
-
-- (void)safeAreaInsetsDidChange
-{
-  ASDisplayNodeAssertMainThread();
-
-  if (self.automaticallyRelayoutOnSafeAreaChanges) {
-    [self setNeedsLayout];
-  }
-
-  [self _fallbackUpdateSafeAreaOnChildren];
 }
 
 @end
@@ -971,16 +885,6 @@ if (shouldApply) { _layer.layerProperty = (layerValueExpr); } else { ASDisplayNo
 {
   _bridge_prologue_write;
   _setToLayer(cornerRadius, newLayerCornerRadius);
-}
-
-- (BOOL)_locked_insetsLayoutMarginsFromSafeArea
-{
-  if (AS_AVAILABLE_IOS(11.0)) {
-    if (!_flags.layerBacked) {
-      return _getFromViewOnly(insetsLayoutMarginsFromSafeArea);
-    }
-  }
-  return _fallbackInsetsLayoutMarginsFromSafeArea;
 }
 
 @end
@@ -1036,7 +940,7 @@ nodeProperty = nodeValueExpr; _setToViewOnly(viewAndPendingViewStateProperty, vi
   _bridge_prologue_write;
   _setAccessibilityToViewAndProperty(_accessibilityLabel, accessibilityLabel, accessibilityLabel, accessibilityLabel);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_11_0
-  if (AS_AVAILABLE_IOS_TVOS(11, 11)) {
+  if (AS_AVAILABLE_IOS(11)) {
     NSAttributedString *accessibilityAttributedLabel = accessibilityLabel ? [[NSAttributedString alloc] initWithString:accessibilityLabel] : nil;
     _setAccessibilityToViewAndProperty(_accessibilityAttributedLabel, accessibilityAttributedLabel, accessibilityAttributedLabel, accessibilityAttributedLabel);
   }
@@ -1069,7 +973,7 @@ nodeProperty = nodeValueExpr; _setToViewOnly(viewAndPendingViewStateProperty, vi
   _bridge_prologue_write;
   _setAccessibilityToViewAndProperty(_accessibilityHint, accessibilityHint, accessibilityHint, accessibilityHint);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_11_0
-  if (AS_AVAILABLE_IOS_TVOS(11, 11)) {
+  if (AS_AVAILABLE_IOS(11)) {
     NSAttributedString *accessibilityAttributedHint = accessibilityHint ? [[NSAttributedString alloc] initWithString:accessibilityHint] : nil;
     _setAccessibilityToViewAndProperty(_accessibilityAttributedHint, accessibilityAttributedHint, accessibilityAttributedHint, accessibilityAttributedHint);
   }
@@ -1103,7 +1007,7 @@ nodeProperty = nodeValueExpr; _setToViewOnly(viewAndPendingViewStateProperty, vi
   _bridge_prologue_write;
   _setAccessibilityToViewAndProperty(_accessibilityValue, accessibilityValue, accessibilityValue, accessibilityValue);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_11_0
-  if (AS_AVAILABLE_IOS_TVOS(11, 11)) {
+  if (AS_AVAILABLE_IOS(11)) {
     NSAttributedString *accessibilityAttributedValue = accessibilityValue ? [[NSAttributedString alloc] initWithString:accessibilityValue] : nil;
     _setAccessibilityToViewAndProperty(_accessibilityAttributedValue, accessibilityAttributedValue, accessibilityAttributedValue, accessibilityAttributedValue);
   }

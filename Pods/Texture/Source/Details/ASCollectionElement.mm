@@ -22,7 +22,7 @@
 @interface ASCollectionElement ()
 
 /// Required node block used to allocate a cell node. Nil after the first execution.
-@property (nonatomic) ASCellNodeBlock nodeBlock;
+@property (nonatomic, strong) ASCellNodeBlock nodeBlock;
 
 @end
 

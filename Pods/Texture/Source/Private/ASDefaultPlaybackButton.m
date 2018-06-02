@@ -46,15 +46,15 @@
   }
 }
 
-- (nullable NSDictionary *)drawParametersForAsyncLayer:(_ASDisplayLayer *)layer
+- (nullable id<NSObject>)drawParametersForAsyncLayer:(_ASDisplayLayer *)layer
 {
   return @{
-    @"buttonType" : @(self.buttonType),
+    @"buttonType" : [NSNumber numberWithInt:_buttonType],
     @"color" : self.tintColor
   };
 }
 
-+ (void)drawRect:(CGRect)bounds withParameters:(NSDictionary *)parameters isCancelled:(asdisplaynode_iscancelled_block_t)isCancelledBlock isRasterizing:(BOOL)isRasterizing
++ (void)drawRect:(CGRect)bounds withParameters:(id)parameters isCancelled:(asdisplaynode_iscancelled_block_t)isCancelledBlock isRasterizing:(BOOL)isRasterizing
 {
   ASDefaultPlaybackButtonType buttonType = (ASDefaultPlaybackButtonType)[parameters[@"buttonType"] intValue];
   UIColor *color = parameters[@"color"];

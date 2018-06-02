@@ -31,6 +31,6 @@
 /**
  * @abstract A size constraint that should apply to this ASLayoutElement.
  */
-@property (nonatomic, readonly) ASLayoutElementSize size;
+@property (nonatomic, assign, readonly) ASLayoutElementSize size;
 
 @end

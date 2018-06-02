@@ -1,10 +1,10 @@
 PODS:
-  - Alamofire (4.7.2)
-  - IGListKit (3.4.0):
-    - IGListKit/Default (= 3.4.0)
-  - IGListKit/Default (3.4.0):
+  - Alamofire (4.7.0)
+  - IGListKit (3.0.0):
+    - IGListKit/Default (= 3.0.0)
+  - IGListKit/Default (3.0.0):
     - IGListKit/Diffing
-  - IGListKit/Diffing (3.4.0)
+  - IGListKit/Diffing (3.0.0)
   - Moya (10.0.2):
     - Moya/Core (= 10.0.2)
   - Moya-ObjectMapper (2.5):
@@ -32,13 +32,13 @@ PODS:
     - PINCache (= 3.0.1-beta.6)
     - PINRemoteImage/Core
   - Result (3.2.4)
-  - Texture (2.7):
-    - Texture/PINRemoteImage (= 2.7)
-  - Texture/Core (2.7)
-  - Texture/IGListKit (2.7):
-    - IGListKit (~> 3.0)
+  - Texture (2.6):
+    - Texture/PINRemoteImage (= 2.6)
+  - Texture/Core (2.6)
+  - Texture/IGListKit (2.6):
+    - IGListKit (= 3.0.0)
     - Texture/Core
-  - Texture/PINRemoteImage (2.7):
+  - Texture/PINRemoteImage (2.6):
     - PINRemoteImage/iOS (= 3.0.0-beta.13)
     - PINRemoteImage/PINCache
     - Texture/Core
@@ -52,7 +52,7 @@ DEPENDENCIES:
   - youtube-ios-player-helper (~> 0.1.4)
 
 SPEC REPOS:
-  https://github.com/cocoapods/specs.git:
+  https://github.com/CocoaPods/Specs.git:
     - Alamofire
     - IGListKit
     - Moya
@@ -66,8 +66,8 @@ SPEC REPOS:
     - youtube-ios-player-helper
 
 SPEC CHECKSUMS:
-  Alamofire: e4fa87002c137ba2d8d634d2c51fabcda0d5c223
-  IGListKit: 7a5d788e9fb746bcd402baa8e8b24bc3bd2a5a07
+  Alamofire: 907e0a98eb68cdb7f9d1f541a563d6ac5dc77b25
+  IGListKit: 9eab6856a15fa25ad72018ff9d9eb2178c240fff
   Moya: 2b0531a9fef318e0bc484030c3db1e6f279ccb66
   Moya-ObjectMapper: 167adf69db0298bf3a19ea05cb9a16ee117c8ef5
   ObjectMapper: 92230db59bf8f341a5c3a3cf0b9fbdde3cf0d87f
@@ -75,9 +75,9 @@ SPEC CHECKSUMS:
   PINOperation: a6219e6fc9db9c269eb7a7b871ac193bcf400aac
   PINRemoteImage: d6d51c5d2adda55f1ce30c96e850b6c4ebd2856a
   Result: d2d07204ce72856f1fd9130bbe42c35a7b0fea10
-  Texture: 9d7e38965cf22ccd7cd9c249dd78b3f14e70ab6c
+  Texture: 7249074582daf75e524e59df5428b66b8e8db0e4
   youtube-ios-player-helper: 21ab92db027c7ff86cb17a3843a3f6eafc8158d2
 
 PODFILE CHECKSUM: b32d3729109f1d90e8504a2bd375485e7d1ba95f
 
-COCOAPODS: 1.5.2
+COCOAPODS: 1.5.0

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "0700"
+   LastUpgradeVersion = "0930"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -13,11 +13,11 @@
             buildForProfiling = "YES"
             buildForArchiving = "YES">
             <BuildableReference
-               BuildableIdentifier = 'primary'
-               BlueprintIdentifier = 'B27F1F7B862582A90168D876BFA178C0'
-               BlueprintName = 'ObjectMapper'
-               ReferencedContainer = 'container:Pods.xcodeproj'
-               BuildableName = 'ObjectMapper.framework'>
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "0FB408FDD1724548E283FB7940306AF3"
+               BlueprintName = "IGListKit"
+               ReferencedContainer = "container:Pods.xcodeproj"
+               BuildableName = "IGListKit.framework">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

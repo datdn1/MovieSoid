@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1E01A70E20C29465008207BA /* AuthAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E01A70D20C29465008207BA /* AuthAPI.swift */; };
 		281D60691EF590D30037675B /* MoviesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DB34BE1EF36D1300FF0E95 /* MoviesViewController.swift */; };
 		281D606A1EF590D30037675B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DB34BC1EF36D1300FF0E95 /* AppDelegate.swift */; };
 		281D606B1EF590D30037675B /* Movies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DB34D21EF37A9A00FF0E95 /* Movies.swift */; };
@@ -66,6 +67,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1E01A70D20C29465008207BA /* AuthAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPI.swift; sourceTree = "<group>"; };
 		281D60801EF590D30037675B /* MovieSoid UIKit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MovieSoid UIKit.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2890F9161EFA1EC500E56754 /* PlayVideoController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlayVideoController.swift; sourceTree = "<group>"; };
 		2890F9171EFA1EC500E56754 /* PlayVideoController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PlayVideoController.xib; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 			isa = PBXGroup;
 			children = (
 				28DB34D01EF37A3400FF0E95 /* MoviesAPI.swift */,
+				1E01A70D20C29465008207BA /* AuthAPI.swift */,
 			);
 			name = Networking;
 			sourceTree = "<group>";
@@ -465,6 +468,7 @@
 				28E2A2681EF7D4110087E521 /* DetailInfoSortProtocol.swift in Sources */,
 				28DD53251EF8DB22001A43DC /* MovieDetailBaseCell.swift in Sources */,
 				28E2A2661EF7D2580087E521 /* CastInfoSection.swift in Sources */,
+				1E01A70E20C29465008207BA /* AuthAPI.swift in Sources */,
 				28DB34D31EF37A9A00FF0E95 /* Movies.swift in Sources */,
 				28D4BC7B1EF519AA00DED334 /* MovieGridCell.swift in Sources */,
 				28E2C2F41EF6291400488C8D /* DetailMovieController.swift in Sources */,

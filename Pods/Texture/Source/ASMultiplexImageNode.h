@@ -78,13 +78,13 @@ typedef NS_ENUM(NSUInteger, ASMultiplexImageNodeErrorCode) {
 /**
  * @abstract The delegate, which must conform to the <ASMultiplexImageNodeDelegate> protocol.
  */
-@property (nonatomic, weak) id <ASMultiplexImageNodeDelegate> delegate;
+@property (nonatomic, readwrite, weak) id <ASMultiplexImageNodeDelegate> delegate;
 
 /**
  * @abstract The data source, which must conform to the <ASMultiplexImageNodeDataSource> protocol.
  * @discussion This value is required for ASMultiplexImageNode to load images.
  */
-@property (nonatomic, weak) id <ASMultiplexImageNodeDataSource> dataSource;
+@property (nonatomic, readwrite, weak) id <ASMultiplexImageNodeDataSource> dataSource;
 
 /**
  * @abstract Whether the receiver should download more than just its highest-quality image.  Defaults to NO.
@@ -93,7 +93,7 @@ typedef NS_ENUM(NSUInteger, ASMultiplexImageNodeErrorCode) {
  * highest-quality image).  If that image is not immediately available or cached, the node can download and display
  * lesser-quality images.  Set `downloadsIntermediateImages` to YES to enable this behaviour.
  */
-@property (nonatomic) BOOL downloadsIntermediateImages;
+@property (nonatomic, readwrite, assign) BOOL downloadsIntermediateImages;
 
 /**
  * @abstract An array of identifiers representing various versions of an image for ASMultiplexImageNode to display.
@@ -103,7 +103,7 @@ typedef NS_ENUM(NSUInteger, ASMultiplexImageNodeErrorCode) {
  *
  * @see <downloadsIntermediateImages> for more information on the image loading process.
  */
-@property (nonatomic, copy) NSArray<ASImageIdentifier> *imageIdentifiers;
+@property (nonatomic, readwrite, copy) NSArray<ASImageIdentifier> *imageIdentifiers;
 
 /**
  * @abstract Notify the receiver SSAA that its data source has new UIImages or NSURLs available for <imageIdentifiers>.
@@ -129,14 +129,16 @@ typedef NS_ENUM(NSUInteger, ASMultiplexImageNodeErrorCode) {
  * image will be displayed as the image downloads. Regardless of this properties value, progress renders will
  * only occur when the node is visible. Defaults to YES.
  */
-@property (nonatomic) BOOL shouldRenderProgressImages;
+@property (nonatomic, assign, readwrite) BOOL shouldRenderProgressImages;
 
+#if TARGET_OS_IOS
 /**
  * @abstract The image manager that this image node should use when requesting images from the Photos framework. If this is `nil` (the default), then `PHImageManager.defaultManager` is used.
  
  * @see `+[NSURL URLWithAssetLocalIdentifier:targetSize:contentMode:options:]` below.
  */
-@property (nullable, nonatomic) PHImageManager *imageManager API_AVAILABLE(ios(8.0), tvos(10.0));
+@property (nullable, nonatomic, strong) PHImageManager *imageManager;
+#endif
 @end
 
 
@@ -243,6 +245,7 @@ didFinishDownloadingImageWithIdentifier:(ASImageIdentifier)imageIdentifier
  */
 - (nullable NSURL *)multiplexImageNode:(ASMultiplexImageNode *)imageNode URLForImageIdentifier:(ASImageIdentifier)imageIdentifier;
 
+#if TARGET_OS_IOS
 /**
  * @abstract A PHAsset for the specific asset local identifier
  * @param imageNode The sender.
@@ -253,10 +256,12 @@ didFinishDownloadingImageWithIdentifier:(ASImageIdentifier)imageIdentifier
  * @note This method may be called from any thread.
  * @return A PHAsset corresponding to `assetLocalIdentifier`, or nil if none is available.
  */
-- (nullable PHAsset *)multiplexImageNode:(ASMultiplexImageNode *)imageNode assetForLocalIdentifier:(NSString *)assetLocalIdentifier API_AVAILABLE(ios(8.0), tvos(10.0));
+- (nullable PHAsset *)multiplexImageNode:(ASMultiplexImageNode *)imageNode assetForLocalIdentifier:(NSString *)assetLocalIdentifier;
+#endif
 @end
 
-#pragma mark -
+#pragma mark - 
+#if TARGET_OS_IOS
 @interface NSURL (ASPhotosFrameworkURLs)
 
 /**
@@ -270,8 +275,9 @@ didFinishDownloadingImageWithIdentifier:(ASImageIdentifier)imageIdentifier
 + (NSURL *)URLWithAssetLocalIdentifier:(NSString *)assetLocalIdentifier
                             targetSize:(CGSize)targetSize
                            contentMode:(PHImageContentMode)contentMode
-                               options:(PHImageRequestOptions *)options NS_RETURNS_RETAINED AS_WARN_UNUSED_RESULT API_AVAILABLE(ios(8.0), tvos(10.0));
+                               options:(PHImageRequestOptions *)options AS_WARN_UNUSED_RESULT;
 
 @end
+#endif
 
 NS_ASSUME_NONNULL_END

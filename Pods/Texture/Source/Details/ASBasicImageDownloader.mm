@@ -39,7 +39,7 @@ NSString * const kASBasicImageDownloaderContextCompletionBlock = @"kASBasicImage
   ASDN::RecursiveMutex __instanceLock__;
 }
 
-@property (nonatomic) NSMutableArray *callbackDatas;
+@property (nonatomic, strong) NSMutableArray *callbackDatas;
 
 @end
 
@@ -130,7 +130,7 @@ static ASDN::StaticMutex& currentRequestsLock = *new ASDN::StaticMutex;
 
     if (completionBlock) {
       dispatch_async(callbackQueue, ^{
-        completionBlock(image, error, nil, nil);
+        completionBlock(image, error, nil);
       });
     }
   }
@@ -179,7 +179,7 @@ static ASDN::StaticMutex& currentRequestsLock = *new ASDN::StaticMutex;
  * NSURLSessionDownloadTask lacks a `userInfo` property, so add this association ourselves.
  */
 @interface NSURLRequest (ASBasicImageDownloader)
-@property (nonatomic) ASBasicImageDownloaderContext *asyncdisplaykit_context;
+@property (nonatomic, strong) ASBasicImageDownloaderContext *asyncdisplaykit_context;
 @end
 
 @implementation NSURLRequest (ASBasicImageDownloader)
@@ -206,7 +206,7 @@ static const char *kContextKey = NSStringFromClass(ASBasicImageDownloaderContext
 
 @implementation ASBasicImageDownloader
 
-+ (ASBasicImageDownloader *)sharedImageDownloader
++ (instancetype)sharedImageDownloader
 {
   static ASBasicImageDownloader *sharedImageDownloader = nil;
   static dispatch_once_t once = 0;
@@ -235,9 +235,9 @@ static const char *kContextKey = NSStringFromClass(ASBasicImageDownloaderContext
 #pragma mark ASImageDownloaderProtocol.
 
 - (id)downloadImageWithURL:(NSURL *)URL
-             callbackQueue:(dispatch_queue_t)callbackQueue
-          downloadProgress:(nullable ASImageDownloaderProgress)downloadProgress
-                completion:(ASImageDownloaderCompletion)completion
+                      callbackQueue:(dispatch_queue_t)callbackQueue
+                   downloadProgress:(nullable ASImageDownloaderProgress)downloadProgress
+                         completion:(ASImageDownloaderCompletion)completion
 {
   ASBasicImageDownloaderContext *context = [ASBasicImageDownloaderContext contextForURL:URL];
 

@@ -41,11 +41,10 @@ public enum MoviesAPI {
     case getReviews(Int)
 }
 
-
 // MARK: - Configure network client
 extension MoviesAPI: TargetType {
     public var headers: [String : String]? {
-        return ["Accept": "application/json", "Content-Type": "application/json"]
+        return nil
     }
     
 
@@ -54,7 +53,7 @@ extension MoviesAPI: TargetType {
     public var path: String {
         switch self {
         case .discover:
-            return "/discover/movie/"
+            return "/discover/movie"
         case .getDetail(let movieId):
             return "/movie/\(movieId)"
         case .getCredits(let movieId):
@@ -77,16 +76,16 @@ extension MoviesAPI: TargetType {
         }
     }
 
-    public var parameters: [String: Any]? {
-        switch self {
-        case .discover(let sortBy, let page):
-            return ["api_key": apiKey, "language" : "en-US", "sort_by" : sortBy, "page" : page]
-        case .getDetail:
-            return ["api_key": apiKey, "language" : "en-US"]
-        case .getCredits, .getImages, .getVideos, .getSimilar, .getReviews:
-            return ["api_key": apiKey]
-        }
-    }
+//    public var parameters: [String: Any]? {
+//        switch self {
+//        case .discover(let sortBy, let page):
+//            return ["api_key": apiKey, "language" : "en-US", "sort_by" : sortBy, "page" : page, "session_id" : "49f1101381b14c5c42624e53cfd4491d9e8bc8ff"]
+//        case .getDetail:
+//            return ["api_key": apiKey, "language" : "en-US"]
+//        case .getCredits, .getImages, .getVideos, .getSimilar, .getReviews:
+//            return ["api_key": apiKey]
+//        }
+//    }
 
     public var parameterEncoding: ParameterEncoding {
         switch self {
@@ -96,7 +95,16 @@ extension MoviesAPI: TargetType {
     }
 
     public var task: Task {
-        return .requestPlain
+        switch self {
+        case .discover(let sort_by, let page):
+            return .requestParameters(parameters: ["api_key": apiKey, "language" : "en-US", "sort_by" : sort_by, "page" : page], encoding: URLEncoding.default)
+        case .getDetail:
+            return .requestParameters(parameters: ["api_key": apiKey, "language" : "en-US"], encoding: URLEncoding.default)
+        case .getCredits, .getImages, .getVideos, .getSimilar, .getReviews:
+            return .requestParameters(parameters: ["api_key": apiKey], encoding: URLEncoding.default)
+        default:
+            return .requestPlain
+        }
     }
 
     public var sampleData: Data {

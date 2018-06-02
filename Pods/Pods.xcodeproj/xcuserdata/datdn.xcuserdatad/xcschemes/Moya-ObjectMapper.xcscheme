@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C36A8515FBF71EBB9F97FF62B3D11E67"
-               BuildableName = "youtube_ios_player_helper.framework"
-               BlueprintName = "youtube-ios-player-helper"
+               BlueprintIdentifier = "CF9F83025EEE1E89490800018F391A28"
+               BuildableName = "Moya_ObjectMapper.framework"
+               BlueprintName = "Moya-ObjectMapper"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -26,6 +26,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
       </Testables>
@@ -36,6 +37,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
@@ -45,9 +47,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C36A8515FBF71EBB9F97FF62B3D11E67"
-            BuildableName = "youtube_ios_player_helper.framework"
-            BlueprintName = "youtube-ios-player-helper"
+            BlueprintIdentifier = "CF9F83025EEE1E89490800018F391A28"
+            BuildableName = "Moya_ObjectMapper.framework"
+            BlueprintName = "Moya-ObjectMapper"
             ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

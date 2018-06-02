@@ -26,15 +26,15 @@
 
 @interface ASElementMap () <ASDescriptionProvider>
 
-@property (nonatomic, readonly) NSArray<ASSection *> *sections;
+@property (nonatomic, strong, readonly) NSArray<ASSection *> *sections;
 
 // Element -> IndexPath
-@property (nonatomic, readonly) NSMapTable<ASCollectionElement *, NSIndexPath *> *elementToIndexPathMap;
+@property (nonatomic, strong, readonly) NSMapTable<ASCollectionElement *, NSIndexPath *> *elementToIndexPathMap;
 
 // The items, in a 2D array
-@property (nonatomic, readonly) ASCollectionElementTwoDimensionalArray *sectionsOfItems;
+@property (nonatomic, strong, readonly) ASCollectionElementTwoDimensionalArray *sectionsOfItems;
 
-@property (nonatomic, readonly) ASSupplementaryElementDictionary *supplementaryElements;
+@property (nonatomic, strong, readonly) ASSupplementaryElementDictionary *supplementaryElements;
 
 @end
 
@@ -73,11 +73,6 @@
     }
   }
   return self;
-}
-
-- (NSUInteger)count
-{
-  return _elementToIndexPathMap.count;
 }
 
 - (NSArray<NSIndexPath *> *)itemIndexPaths

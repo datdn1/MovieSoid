@@ -36,17 +36,17 @@
 @interface _ASTablePendingState : NSObject
 @property (weak, nonatomic) id <ASTableDelegate>   delegate;
 @property (weak, nonatomic) id <ASTableDataSource> dataSource;
-@property (nonatomic) ASLayoutRangeMode rangeMode;
-@property (nonatomic) BOOL allowsSelection;
-@property (nonatomic) BOOL allowsSelectionDuringEditing;
-@property (nonatomic) BOOL allowsMultipleSelection;
-@property (nonatomic) BOOL allowsMultipleSelectionDuringEditing;
-@property (nonatomic) BOOL inverted;
-@property (nonatomic) CGFloat leadingScreensForBatching;
-@property (nonatomic) UIEdgeInsets contentInset;
-@property (nonatomic) CGPoint contentOffset;
-@property (nonatomic) BOOL animatesContentOffset;
-@property (nonatomic) BOOL automaticallyAdjustsContentOffset;
+@property (nonatomic, assign) ASLayoutRangeMode rangeMode;
+@property (nonatomic, assign) BOOL allowsSelection;
+@property (nonatomic, assign) BOOL allowsSelectionDuringEditing;
+@property (nonatomic, assign) BOOL allowsMultipleSelection;
+@property (nonatomic, assign) BOOL allowsMultipleSelectionDuringEditing;
+@property (nonatomic, assign) BOOL inverted;
+@property (nonatomic, assign) CGFloat leadingScreensForBatching;
+@property (nonatomic, assign) UIEdgeInsets contentInset;
+@property (nonatomic, assign) CGPoint contentOffset;
+@property (nonatomic, assign) BOOL animatesContentOffset;
+@property (nonatomic, assign) BOOL automaticallyAdjustsContentOffset;
 @end
 
 @implementation _ASTablePendingState
@@ -79,7 +79,7 @@
   id<ASBatchFetchingDelegate> _batchFetchingDelegate;
 }
 
-@property (nonatomic) _ASTablePendingState *pendingState;
+@property (nonatomic, strong) _ASTablePendingState *pendingState;
 @end
 
 @implementation ASTableNode
@@ -103,18 +103,6 @@
 {
   return [self initWithStyle:UITableViewStylePlain];
 }
-
-#if ASDISPLAYNODE_ASSERTIONS_ENABLED
-- (void)dealloc
-{
-  if (self.nodeLoaded) {
-    __weak UIView *view = self.view;
-    ASPerformBlockOnMainThread(^{
-      ASDisplayNodeCAssertNil(view.superview, @"Node's view should be removed from hierarchy.");
-    });
-  }
-}
-#endif
 
 #pragma mark ASDisplayNode
 
@@ -776,11 +764,8 @@ ASLayoutElementCollectionTableSetTraitCollection(_environmentStateLock)
   return (self.nodeLoaded ? [self.view isProcessingUpdates] : NO);
 }
 
-- (void)onDidFinishProcessingUpdates:(void (^)())completion
+- (void)onDidFinishProcessingUpdates:(nullable void (^)())completion
 {
-  if (!completion) {
-    return;
-  }
   if (!self.nodeLoaded) {
     completion();
   } else {

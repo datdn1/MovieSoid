@@ -26,11 +26,11 @@ NS_ASSUME_NONNULL_BEGIN
 AS_SUBCLASSING_RESTRICTED
 @interface ASCollectionElement : NSObject
 
-@property (nullable, nonatomic, copy, readonly) NSString *supplementaryElementKind;
-@property (nonatomic) ASSizeRange constrainedSize;
-@property (nonatomic, weak, readonly) id<ASRangeManagingNode> owningNode;
-@property (nonatomic) ASPrimitiveTraitCollection traitCollection;
-@property (nullable, nonatomic, readonly) id nodeModel;
+@property (nonatomic, readonly, copy, nullable) NSString *supplementaryElementKind;
+@property (nonatomic, assign) ASSizeRange constrainedSize;
+@property (nonatomic, readonly, weak) id<ASRangeManagingNode> owningNode;
+@property (nonatomic, assign) ASPrimitiveTraitCollection traitCollection;
+@property (nonatomic, readonly, nullable) id nodeModel;
 
 - (instancetype)initWithNodeModel:(nullable id)nodeModel
                         nodeBlock:(ASCellNodeBlock)nodeBlock
@@ -43,12 +43,12 @@ AS_SUBCLASSING_RESTRICTED
  * @return The node, running the node block if necessary. The node block will be discarded
  * after the first time it is run.
  */
-@property (readonly) ASCellNode *node;
+@property (strong, readonly) ASCellNode *node;
 
 /**
  * @return The node, if the node block has been run already.
  */
-@property (nullable, readonly) ASCellNode *nodeIfAllocated;
+@property (strong, readonly, nullable) ASCellNode *nodeIfAllocated;
 
 @end
 

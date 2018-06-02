@@ -20,17 +20,13 @@
 #import <AsyncDisplayKit/ASAvailability.h>
 #import <AsyncDisplayKit/ASBasicImageDownloader.h>
 #import <AsyncDisplayKit/ASDisplayNodeExtras.h>
-#import <AsyncDisplayKit/ASDisplayNode+FrameworkPrivate.h>
-#import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 #import <AsyncDisplayKit/ASEqualityHelpers.h>
 #import <AsyncDisplayKit/ASInternalHelpers.h>
 #import <AsyncDisplayKit/ASImageNode+Private.h>
 #import <AsyncDisplayKit/ASImageNode+AnimatedImagePrivate.h>
 #import <AsyncDisplayKit/ASImageContainerProtocolCategories.h>
 #import <AsyncDisplayKit/ASLog.h>
-#import <AsyncDisplayKit/ASNetworkImageLoadInfo+Private.h>
-
-#import <atomic>
 
 #if AS_PIN_REMOTE_IMAGE
 #import <AsyncDisplayKit/ASPINRemoteImageDownloader.h>
@@ -38,13 +34,13 @@
 
 @interface ASNetworkImageNode ()
 {
-  // Only access any of these while locked.
+  // Only access any of these with __instanceLock__.
   __weak id<ASNetworkImageNodeDelegate> _delegate;
 
-  NSURL *_URL;
+  NSArray *_URLs;
   UIImage *_defaultImage;
 
-  NSInteger _cacheSentinel;
+  NSUUID *_cacheUUID;
   id _downloadIdentifier;
   // The download identifier that we have set a progress block on, if any.
   id _downloadIdentifierForProgressBlock;
@@ -71,6 +67,7 @@
     unsigned int downloaderImplementsSetPriority:1;
     unsigned int downloaderImplementsAnimatedImage:1;
     unsigned int downloaderImplementsCancelWithResume:1;
+    unsigned int downloaderImplementsDownloadURLs:1;
   } _downloaderFlags;
 
   // Immutable and set on init only. We don't need to lock in this case.
@@ -78,6 +75,7 @@
   struct {
     unsigned int cacheSupportsClearing:1;
     unsigned int cacheSupportsSynchronousFetch:1;
+    unsigned int cacheSupportsCachedURLs:1;
   } _cacheFlags;
 }
 
@@ -99,9 +97,11 @@
   _downloaderFlags.downloaderImplementsSetPriority = [downloader respondsToSelector:@selector(setPriority:withDownloadIdentifier:)];
   _downloaderFlags.downloaderImplementsAnimatedImage = [downloader respondsToSelector:@selector(animatedImageWithData:)];
   _downloaderFlags.downloaderImplementsCancelWithResume = [downloader respondsToSelector:@selector(cancelImageDownloadWithResumePossibilityForIdentifier:)];
+  _downloaderFlags.downloaderImplementsDownloadURLs = [downloader respondsToSelector:@selector(downloadImageWithURLs:callbackQueue:downloadProgress:completion:)];
 
   _cacheFlags.cacheSupportsClearing = [cache respondsToSelector:@selector(clearFetchedImageFromCacheWithURL:)];
   _cacheFlags.cacheSupportsSynchronousFetch = [cache respondsToSelector:@selector(synchronouslyFetchedCachedImageWithURL:)];
+  _cacheFlags.cacheSupportsCachedURLs = [cache respondsToSelector:@selector(cachedImageWithURLs:callbackQueue:completion:)];
   
   _shouldCacheImage = YES;
   _shouldRenderProgressImages = YES;
@@ -124,26 +124,12 @@
   [self _cancelImageDownloadWithResumePossibility:NO];
 }
 
-- (dispatch_queue_t)callbackQueue
-{
-    static dispatch_once_t onceToken;
-    static dispatch_queue_t callbackQueue;
-    dispatch_once(&onceToken, ^{
-        if (ASActivateExperimentalFeature(ASExperimentalNetworkImageQueue)) {
-            callbackQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-        } else {
-            callbackQueue = dispatch_get_main_queue();
-        }
-    });
-    return callbackQueue;
-}
-
 #pragma mark - Public methods -- must lock
 
 /// Setter for public image property. It has the side effect of setting an internal _imageWasSetExternally that prevents setting an image internally. Setting an image internally should happen with the _setImage: method
 - (void)setImage:(UIImage *)image
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_setImage:image];
 }
 
@@ -153,14 +139,9 @@
   BOOL shouldCancelAndClear = imageWasSetExternally && (imageWasSetExternally != _imageWasSetExternally);
   _imageWasSetExternally = imageWasSetExternally;
   if (shouldCancelAndClear) {
-    ASDisplayNodeAssertNil(_URL, @"Directly setting an image on an ASNetworkImageNode causes it to behave like an ASImageNode instead of an ASNetworkImageNode. If this is what you want, set the URL to nil first.");
-    _URL = nil;
+    ASDisplayNodeAssert(_URLs == nil || _URLs.count == 0, @"Directly setting an image on an ASNetworkImageNode causes it to behave like an ASImageNode instead of an ASNetworkImageNode. If this is what you want, set the URL to nil first.");
+    _URLs = nil;
     [self _locked_cancelDownloadAndClearImageWithResumePossibility:NO];
-  }
-  
-  // If our image is being set externally, the image quality is 100%
-  if (imageWasSetExternally) {
-    [self _setCurrentImageQuality:1.0];
   }
   
   [self _locked__setImage:image];
@@ -169,7 +150,7 @@
 /// Setter for private image property. See @c _locked_setImage why this is needed
 - (void)_setImage:(UIImage *)image
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked__setImage:image];
 }
 
@@ -178,63 +159,72 @@
   [super _locked_setImage:image];
 }
 
-// Deprecated
-- (void)setURLs:(NSArray<NSURL *> *)URLs
-{
-  [self setURL:[URLs firstObject]];
-}
-
-// Deprecated
-- (NSArray<NSURL *> *)URLs
-{
-  return @[self.URL];
-}
-
 - (void)setURL:(NSURL *)URL
 {
-  [self setURL:URL resetToDefault:YES];
+  if (URL) {
+    [self setURLs:@[URL]];
+  } else {
+    [self setURLs:nil];
+  }
 }
 
 - (void)setURL:(NSURL *)URL resetToDefault:(BOOL)reset
 {
+  if (URL) {
+    [self setURLs:@[URL] resetToDefault:reset];
+  } else {
+    [self setURLs:nil resetToDefault:reset];
+  }
+}
+
+- (NSURL *)URL
+{
+  return [self.URLs lastObject];
+}
+
+- (void)setURLs:(NSArray <NSURL *> *)URLs
+{
+  [self setURLs:URLs resetToDefault:YES];
+}
+
+- (void)setURLs:(NSArray <NSURL *> *)URLs resetToDefault:(BOOL)reset
+{
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     
-    if (ASObjectIsEqual(URL, _URL)) {
+    if (ASObjectIsEqual(URLs, _URLs)) {
       return;
     }
-    
-    URL = [URL copy];
     
     ASDisplayNodeAssert(_imageWasSetExternally == NO, @"Setting a URL to an ASNetworkImageNode after setting an image changes its behavior from an ASImageNode to an ASNetworkImageNode. If this is what you want, set the image to nil first.");
     
     _imageWasSetExternally = NO;
     
     [self _locked_cancelImageDownloadWithResumePossibility:NO];
-
+    
     _imageLoaded = NO;
     
-    _URL = URL;
+    _URLs = URLs;
     
-    // If URL is nil and URL was not equal to _URL (checked at the top), then we previously had a URL but it's been nil'd out.
-    BOOL hadURL = (URL == nil);
-    if (reset || hadURL) {
-      [self _setCurrentImageQuality:(hadURL ? 0.0 : 1.0)];
+    BOOL hasURL = (_URLs.count == 0);
+    if (reset || hasURL) {
+      [self _locked_setCurrentImageQuality:(hasURL ? 0.0 : 1.0)];
       [self _locked__setImage:_defaultImage];
     }
   }
-
+  
   [self setNeedsPreload];
 }
 
-- (NSURL *)URL
+- (NSArray <NSURL *>*)URLs
 {
-  return ASLockedSelf(_URL);
+  ASDN::MutexLocker l(__instanceLock__);
+  return _URLs;
 }
 
 - (void)setDefaultImage:(UIImage *)defaultImage
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
 
   [self _locked_setDefaultImage:defaultImage];
 }
@@ -248,55 +238,68 @@
   _defaultImage = defaultImage;
 
   if (!_imageLoaded) {
-    [self _setCurrentImageQuality:((_URL == nil) ? 0.0 : 1.0)];
+    [self _locked_setCurrentImageQuality:((_URLs.count == 0) ? 0.0 : 1.0)];
     [self _locked__setImage:defaultImage];
+    
   }
 }
 
 - (UIImage *)defaultImage
 {
-  return ASLockedSelf(_defaultImage);
+  ASDN::MutexLocker l(__instanceLock__);
+  return _defaultImage;
 }
 
 - (void)setCurrentImageQuality:(CGFloat)currentImageQuality
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   _currentImageQuality = currentImageQuality;
 }
 
 - (CGFloat)currentImageQuality
 {
-  return ASLockedSelf(_currentImageQuality);
+  ASDN::MutexLocker l(__instanceLock__);
+  return _currentImageQuality;
 }
 
 /**
- * Always use these methods internally to update the current image quality
+ * Always use this methods internally to update the current image quality
  * We want to maintain the order that currentImageQuality is set regardless of the calling thread,
- * so we always have to dispatch to the main thread to ensure that we queue the operations in the correct order.
+ * so we always have to dispatch to the main threadto ensure that we queue the operations in the correct order.
  * (see comment in displayDidFinish)
  */
 - (void)_setCurrentImageQuality:(CGFloat)imageQuality
 {
+  ASDN::MutexLocker l(__instanceLock__);
+  [self _locked_setCurrentImageQuality:imageQuality];
+}
+
+- (void)_locked_setCurrentImageQuality:(CGFloat)imageQuality
+{
   dispatch_async(dispatch_get_main_queue(), ^{
-    self.currentImageQuality = imageQuality;
+    // As the setting of the image quality is dispatched the lock is gone by the time the block is executing.
+    // Therefore we have to grab the lock again
+    __instanceLock__.lock();
+      _currentImageQuality = imageQuality;
+    __instanceLock__.unlock();
   });
 }
 
 - (void)setRenderedImageQuality:(CGFloat)renderedImageQuality
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   _renderedImageQuality = renderedImageQuality;
 }
 
 - (CGFloat)renderedImageQuality
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _renderedImageQuality;
 }
 
 - (void)setDelegate:(id<ASNetworkImageNodeDelegate>)delegate
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   _delegate = delegate;
   
   _delegateFlags.delegateDidStartFetchingData = [delegate respondsToSelector:@selector(imageNodeDidStartFetchingData:)];
@@ -308,27 +311,33 @@
 
 - (id<ASNetworkImageNodeDelegate>)delegate
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _delegate;
 }
 
 - (void)setShouldRenderProgressImages:(BOOL)shouldRenderProgressImages
 {
-  if (ASLockedSelfCompareAssign(_shouldRenderProgressImages, shouldRenderProgressImages)) {
-    [self _updateProgressImageBlockOnDownloaderIfNeeded];
+  {
+    ASDN::MutexLocker l(__instanceLock__);
+    if (shouldRenderProgressImages == _shouldRenderProgressImages) {
+      return;
+    }
+    _shouldRenderProgressImages = shouldRenderProgressImages;
   }
+
+  [self _updateProgressImageBlockOnDownloaderIfNeeded];
 }
 
 - (BOOL)shouldRenderProgressImages
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _shouldRenderProgressImages;
 }
 
 - (BOOL)placeholderShouldPersist
 {
-  ASLockScopeSelf();
-  return (self.image == nil && self.animatedImage == nil && _URL != nil);
+  ASDN::MutexLocker l(__instanceLock__);
+  return (self.image == nil && self.animatedImage == nil && _URLs.count != 0);
 }
 
 /* displayWillStartAsynchronously: in ASMultiplexImageNode has a very similar implementation. Changes here are likely necessary
@@ -338,24 +347,27 @@
   [super displayWillStartAsynchronously:asynchronously];
   
   if (asynchronously == NO && _cacheFlags.cacheSupportsSynchronousFetch) {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
 
-    NSURL *url = _URL;
-    if (_imageLoaded == NO && url && _downloadIdentifier == nil) {
-      UIImage *result = [[_cache synchronouslyFetchedCachedImageWithURL:url] asdk_image];
-      if (result) {
-        [self _setCurrentImageQuality:1.0];
-        [self _locked__setImage:result];
-        _imageLoaded = YES;
-        
-        // Call out to the delegate.
-        if (_delegateFlags.delegateDidLoadImageWithInfo) {
-          ASUnlockScope(self);
-          auto info = [[ASNetworkImageLoadInfo alloc] initWithURL:url sourceType:ASNetworkImageSourceSynchronousCache downloadIdentifier:nil userInfo:nil];
-          [_delegate imageNode:self didLoadImage:result info:info];
-        } else if (_delegateFlags.delegateDidLoadImage) {
-          ASUnlockScope(self);
-          [_delegate imageNode:self didLoadImage:result];
+    if (_imageLoaded == NO && _URLs.count > 0 && _downloadIdentifier == nil) {
+      for (NSURL *url in [_URLs reverseObjectEnumerator]) {
+        UIImage *result = [[_cache synchronouslyFetchedCachedImageWithURL:url] asdk_image];
+        if (result) {
+          [self _locked_setCurrentImageQuality:1.0];
+          [self _locked__setImage:result];
+          _imageLoaded = YES;
+
+          // Call out to the delegate.
+          if (_delegateFlags.delegateDidLoadImageWithInfo) {
+            ASDN::MutexUnlocker l(__instanceLock__);
+            ASNetworkImageNodeDidLoadInfo info = {};
+            info.imageSource = ASNetworkImageSourceSynchronousCache;
+            [_delegate imageNode:self didLoadImage:result info:info];
+          } else if (_delegateFlags.delegateDidLoadImage) {
+            ASDN::MutexUnlocker l(__instanceLock__);
+            [_delegate imageNode:self didLoadImage:result];
+          }
+          break;
         }
       }
     }
@@ -365,7 +377,9 @@
   [self didEnterPreloadState];
   
   if (self.image == nil && _downloaderFlags.downloaderImplementsSetPriority) {
-    id downloadIdentifier = ASLockedSelf(_downloadIdentifier);
+    __instanceLock__.lock();
+      id downloadIdentifier = _downloadIdentifier;
+    __instanceLock__.unlock();
     if (downloadIdentifier != nil) {
       [_downloader setPriority:ASImageDownloaderPriorityImminent withDownloadIdentifier:downloadIdentifier];
     }
@@ -378,10 +392,12 @@
 {
   [super didEnterVisibleState];
   
-  id downloadIdentifier = ({
-    ASLockScopeSelf();
-    _downloaderFlags.downloaderImplementsSetPriority ? _downloadIdentifier : nil;
-  });
+  __instanceLock__.lock();
+    id downloadIdentifier = nil;
+    if (_downloaderFlags.downloaderImplementsSetPriority) {
+      downloadIdentifier = _downloadIdentifier;
+    }
+  __instanceLock__.unlock();
   
   if (downloadIdentifier != nil) {
     [_downloader setPriority:ASImageDownloaderPriorityVisible withDownloadIdentifier:downloadIdentifier];
@@ -394,10 +410,12 @@
 {
   [super didExitVisibleState];
 
-  id downloadIdentifier = ({
-    ASLockScopeSelf();
-    _downloaderFlags.downloaderImplementsSetPriority ? _downloadIdentifier : nil;
-  });
+  __instanceLock__.lock();
+    id downloadIdentifier = nil;
+    if (_downloaderFlags.downloaderImplementsSetPriority) {
+      downloadIdentifier = _downloadIdentifier;
+    }
+  __instanceLock__.unlock();
   
   if (downloadIdentifier != nil) {
     [_downloader setPriority:ASImageDownloaderPriorityPreload withDownloadIdentifier:downloadIdentifier];
@@ -410,8 +428,11 @@
 {
   [super didExitPreloadState];
 
+  __instanceLock__.lock();
+    BOOL imageWasSetExternally = _imageWasSetExternally;
+  __instanceLock__.unlock();
   // If the image was set explicitly we don't want to remove it while exiting the preload state
-  if (ASLockedSelf(_imageWasSetExternally)) {
+  if (imageWasSetExternally) {
     return;
   }
 
@@ -430,7 +451,7 @@
 
 - (void)handleProgressImage:(UIImage *)progressImage progress:(CGFloat)progress downloadIdentifier:(nullable id)downloadIdentifier
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   
   // Getting a result back for a different download identifier, download must not have been successfully canceled
   if (ASObjectIsEqual(_downloadIdentifier, downloadIdentifier) == NO && downloadIdentifier != nil) {
@@ -438,7 +459,7 @@
   }
   
   as_log_verbose(ASImageLoadingLog(), "Received progress image for %@ q: %.2g id: %@", self, progress, progressImage);
-  [self _setCurrentImageQuality:progress];
+  [self _locked_setCurrentImageQuality:progress];
   [self _locked__setImage:progressImage];
 }
 
@@ -450,12 +471,12 @@
   }
 
   // Read state.
-  [self lock];
+  __instanceLock__.lock();
     BOOL shouldRender = _shouldRenderProgressImages && ASInterfaceStateIncludesVisible(_interfaceState);
     id oldDownloadIDForProgressBlock = _downloadIdentifierForProgressBlock;
     id newDownloadIDForProgressBlock = shouldRender ? _downloadIdentifier : nil;
     BOOL clearAndReattempt = NO;
-  [self unlock];
+  __instanceLock__.unlock();
 
   // If we're already bound to the correct download, we're done.
   if (ASObjectIsEqual(oldDownloadIDForProgressBlock, newDownloadIDForProgressBlock)) {
@@ -465,7 +486,7 @@
   // Unbind from the previous download.
   if (oldDownloadIDForProgressBlock != nil) {
     as_log_verbose(ASImageLoadingLog(), "Disabled progress images for %@ id: %@", self, oldDownloadIDForProgressBlock);
-    [_downloader setProgressImageBlock:nil callbackQueue:[self callbackQueue] withDownloadIdentifier:oldDownloadIDForProgressBlock];
+    [_downloader setProgressImageBlock:nil callbackQueue:dispatch_get_main_queue() withDownloadIdentifier:oldDownloadIDForProgressBlock];
   }
 
   // Bind to the current download.
@@ -474,12 +495,12 @@
     as_log_verbose(ASImageLoadingLog(), "Enabled progress images for %@ id: %@", self, newDownloadIDForProgressBlock);
     [_downloader setProgressImageBlock:^(UIImage * _Nonnull progressImage, CGFloat progress, id  _Nullable downloadIdentifier) {
       [weakSelf handleProgressImage:progressImage progress:progress downloadIdentifier:downloadIdentifier];
-    } callbackQueue:[self callbackQueue] withDownloadIdentifier:newDownloadIDForProgressBlock];
+    } callbackQueue:dispatch_get_main_queue() withDownloadIdentifier:newDownloadIDForProgressBlock];
   }
 
   // Update state local state with lock held.
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     // Check if the oldDownloadIDForProgressBlock still is the same as the _downloadIdentifierForProgressBlock
     if (_downloadIdentifierForProgressBlock == oldDownloadIDForProgressBlock) {
       _downloadIdentifierForProgressBlock = newDownloadIDForProgressBlock;
@@ -494,7 +515,7 @@
     // In this case another thread changed the _downloadIdentifierForProgressBlock before we finished registering
     // the new progress block for newDownloadIDForProgressBlock ID. Let's clear it now and reattempt to register
     if (newDownloadIDForProgressBlock) {
-      [_downloader setProgressImageBlock:nil callbackQueue:[self callbackQueue] withDownloadIdentifier:newDownloadIDForProgressBlock];
+      [_downloader setProgressImageBlock:nil callbackQueue:dispatch_get_main_queue() withDownloadIdentifier:newDownloadIDForProgressBlock];
     }
     [self _updateProgressImageBlockOnDownloaderIfNeeded];
   }
@@ -502,7 +523,7 @@
 
 - (void)_cancelDownloadAndClearImageWithResumePossibility:(BOOL)storeResume
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_cancelDownloadAndClearImageWithResumePossibility:storeResume];
 }
 
@@ -511,22 +532,24 @@
   [self _locked_cancelImageDownloadWithResumePossibility:storeResume];
   
   [self _locked_setAnimatedImage:nil];
-  [self _setCurrentImageQuality:0.0];
+  [self _locked_setCurrentImageQuality:0.0];
   [self _locked__setImage:_defaultImage];
 
   _imageLoaded = NO;
 
   if (_cacheFlags.cacheSupportsClearing) {
-    if (_URL != nil) {
-      as_log_verbose(ASImageLoadingLog(), "Clearing cached image for %@ url: %@", self, _URL);
-      [_cache clearFetchedImageFromCacheWithURL:_URL];
+    if (_URLs.count != 0) {
+      as_log_verbose(ASImageLoadingLog(), "Clearing cached image for %@ url: %@", self, _URLs);
+      for (NSURL *url in _URLs) {
+        [_cache clearFetchedImageFromCacheWithURL:url];
+      }
     }
   }
 }
 
 - (void)_cancelImageDownloadWithResumePossibility:(BOOL)storeResume
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_cancelImageDownloadWithResumePossibility:storeResume];
 }
 
@@ -546,13 +569,14 @@
     }
   }
   _downloadIdentifier = nil;
-  _cacheSentinel++;
+
+  _cacheUUID = nil;
 }
 
-- (void)_downloadImageWithCompletion:(void (^)(id <ASImageContainerProtocol> imageContainer, NSError*, id downloadIdentifier, id userInfo))finished
+- (void)_downloadImageWithCompletion:(void (^)(id <ASImageContainerProtocol> imageContainer, NSError*, id downloadIdentifier))finished
 {
   ASPerformBlockOnBackgroundThread(^{
-    NSURL *url;
+    NSArray <NSURL *> *urls;
     id downloadIdentifier;
     BOOL cancelAndReattempt = NO;
     
@@ -560,24 +584,35 @@
     // We need to reobtain the lock after and ensure that the task we've kicked off still matches our URL. If not, we need to cancel
     // it and try again.
     {
-      ASLockScopeSelf();
-      url = _URL;
+      ASDN::MutexLocker l(__instanceLock__);
+      urls = _URLs;
     }
 
-
-    downloadIdentifier = [_downloader downloadImageWithURL:url
-                                             callbackQueue:[self callbackQueue]
-                                          downloadProgress:NULL
-                                                completion:^(id <ASImageContainerProtocol> _Nullable imageContainer, NSError * _Nullable error, id  _Nullable downloadIdentifier, id _Nullable userInfo) {
-                                                  if (finished != NULL) {
-                                                    finished(imageContainer, error, downloadIdentifier, userInfo);
-                                                  }
-                                                }];
+    if (_downloaderFlags.downloaderImplementsDownloadURLs) {
+      downloadIdentifier = [_downloader downloadImageWithURLs:urls
+                                                callbackQueue:dispatch_get_main_queue()
+                                             downloadProgress:NULL
+                                                   completion:^(id <ASImageContainerProtocol> _Nullable imageContainer, NSError * _Nullable error, id  _Nullable downloadIdentifier) {
+                                                     if (finished != NULL) {
+                                                       finished(imageContainer, error, downloadIdentifier);
+                                                     }
+                                                   }];
+    } else {
+      downloadIdentifier = [_downloader downloadImageWithURL:[urls lastObject]
+                                               callbackQueue:dispatch_get_main_queue()
+                                            downloadProgress:NULL
+                                                  completion:^(id <ASImageContainerProtocol> _Nullable imageContainer, NSError * _Nullable error, id  _Nullable downloadIdentifier) {
+                                                    if (finished != NULL) {
+                                                      finished(imageContainer, error, downloadIdentifier);
+                                                    }
+                                                  }];
+    }
+    
     as_log_verbose(ASImageLoadingLog(), "Downloading image for %@ url: %@", self, url);
   
     {
-      ASLockScopeSelf();
-      if (ASObjectIsEqual(_URL, url)) {
+      ASDN::MutexLocker l(__instanceLock__);
+      if (ASObjectIsEqual(_URLs, urls)) {
         // The download we kicked off is correct, no need to do any more work.
         _downloadIdentifier = downloadIdentifier;
       } else {
@@ -602,28 +637,30 @@
 
 - (void)_lazilyLoadImageIfNecessary
 {
-  [self lock];
+  __instanceLock__.lock();
     __weak id<ASNetworkImageNodeDelegate> delegate = _delegate;
     BOOL delegateDidStartFetchingData = _delegateFlags.delegateDidStartFetchingData;
     BOOL isImageLoaded = _imageLoaded;
-    NSURL *URL = _URL;
+    NSArray <NSURL *>*URLs = _URLs;
     id currentDownloadIdentifier = _downloadIdentifier;
-  [self unlock];
+  __instanceLock__.unlock();
   
-  if (!isImageLoaded && URL != nil && currentDownloadIdentifier == nil) {
+  if (!isImageLoaded && URLs.count > 0 && currentDownloadIdentifier == nil) {
     if (delegateDidStartFetchingData) {
       [delegate imageNodeDidStartFetchingData:self];
     }
     
-    if (URL.isFileURL) {
+    // We only support file URLs if there is one URL currently
+    if (URLs.count == 1 && [URLs lastObject].isFileURL) {
       dispatch_async(dispatch_get_main_queue(), ^{
-        ASLockScopeSelf();
+        ASDN::MutexLocker l(__instanceLock__);
         
         // Bail out if not the same URL anymore
-        if (!ASObjectIsEqual(URL, _URL)) {
+        if (!ASObjectIsEqual(URLs, _URLs)) {
           return;
         }
         
+        NSURL *URL = [URLs lastObject];
         if (_shouldCacheImage) {
           [self _locked__setImage:[UIImage imageNamed:URL.path.lastPathComponent]];
         } else {
@@ -661,117 +698,116 @@
 
         _imageLoaded = YES;
 
-        [self _setCurrentImageQuality:1.0];
+        [self _locked_setCurrentImageQuality:1.0];
 
         if (_delegateFlags.delegateDidLoadImageWithInfo) {
-          ASUnlockScope(self);
-          auto info = [[ASNetworkImageLoadInfo alloc] initWithURL:URL sourceType:ASNetworkImageSourceFileURL downloadIdentifier:nil userInfo:nil];
+          ASDN::MutexUnlocker u(__instanceLock__);
+          ASNetworkImageNodeDidLoadInfo info = {};
+          info.imageSource = ASNetworkImageSourceFileURL;
           [delegate imageNode:self didLoadImage:self.image info:info];
         } else if (_delegateFlags.delegateDidLoadImage) {
-          ASUnlockScope(self);
+          ASDN::MutexUnlocker u(__instanceLock__);
           [delegate imageNode:self didLoadImage:self.image];
         }
       });
     } else {
       __weak __typeof__(self) weakSelf = self;
-      auto finished = ^(id <ASImageContainerProtocol>imageContainer, NSError *error, id downloadIdentifier, ASNetworkImageSourceType imageSource, id userInfo) {
-        ASPerformBlockOnBackgroundThread(^{
-          __typeof__(self) strongSelf = weakSelf;
-          if (strongSelf == nil) {
-            return;
+      auto finished = ^(id <ASImageContainerProtocol>imageContainer, NSError *error, id downloadIdentifier, ASNetworkImageSource imageSource) {
+       
+        __typeof__(self) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+          return;
+        }
+
+        as_log_verbose(ASImageLoadingLog(), "Downloaded image for %@ img: %@ urls: %@", self, [imageContainer asdk_image], URLs);
+        
+        // Grab the lock for the rest of the block
+        ASDN::MutexLocker l(strongSelf->__instanceLock__);
+        
+        //Getting a result back for a different download identifier, download must not have been successfully canceled
+        if (ASObjectIsEqual(strongSelf->_downloadIdentifier, downloadIdentifier) == NO && downloadIdentifier != nil) {
+          return;
+        }
+          
+        //No longer in preload range, no point in setting the results (they won't be cleared in exit preload range)
+        if (ASInterfaceStateIncludesPreload(self->_interfaceState) == NO) {
+          self->_downloadIdentifier = nil;
+          self->_cacheUUID = nil;
+          return;
+        }
+
+        if (imageContainer != nil) {
+          [strongSelf _locked_setCurrentImageQuality:1.0];
+          if ([imageContainer asdk_animatedImageData] && strongSelf->_downloaderFlags.downloaderImplementsAnimatedImage) {
+            id animatedImage = [strongSelf->_downloader animatedImageWithData:[imageContainer asdk_animatedImageData]];
+            [strongSelf _locked_setAnimatedImage:animatedImage];
+          } else {
+            [strongSelf _locked__setImage:[imageContainer asdk_image]];
           }
-          
-          as_log_verbose(ASImageLoadingLog(), "Downloaded image for %@ img: %@ url: %@", self, [imageContainer asdk_image], URL);
-          
-          // Grab the lock for the rest of the block
-          ASLockScope(strongSelf);
-          
-          //Getting a result back for a different download identifier, download must not have been successfully canceled
-          if (ASObjectIsEqual(strongSelf->_downloadIdentifier, downloadIdentifier) == NO && downloadIdentifier != nil) {
-            return;
+          strongSelf->_imageLoaded = YES;
+        }
+
+        strongSelf->_downloadIdentifier = nil;
+        strongSelf->_cacheUUID = nil;
+
+        if (imageContainer != nil) {
+          if (strongSelf->_delegateFlags.delegateDidLoadImageWithInfo) {
+            ASDN::MutexUnlocker u(strongSelf->__instanceLock__);
+            ASNetworkImageNodeDidLoadInfo info = {};
+            info.imageSource = imageSource;
+            [delegate imageNode:strongSelf didLoadImage:strongSelf.image info:info];
+          } else if (strongSelf->_delegateFlags.delegateDidLoadImage) {
+            ASDN::MutexUnlocker u(strongSelf->__instanceLock__);
+            [delegate imageNode:strongSelf didLoadImage:strongSelf.image];
           }
-          
-          //No longer in preload range, no point in setting the results (they won't be cleared in exit preload range)
-          if (ASInterfaceStateIncludesPreload(strongSelf->_interfaceState) == NO) {
-            strongSelf->_downloadIdentifier = nil;
-            strongSelf->_cacheSentinel++;
-            return;
-          }
-          
-          UIImage *newImage;
-          if (imageContainer != nil) {
-            [strongSelf _setCurrentImageQuality:1.0];
-            NSData *animatedImageData = [imageContainer asdk_animatedImageData];
-            if (animatedImageData && strongSelf->_downloaderFlags.downloaderImplementsAnimatedImage) {
-              id animatedImage = [strongSelf->_downloader animatedImageWithData:animatedImageData];
-              [strongSelf _locked_setAnimatedImage:animatedImage];
-            } else {
-              newImage = [imageContainer asdk_image];
-              [strongSelf _locked__setImage:newImage];
-            }
-            strongSelf->_imageLoaded = YES;
-          }
-          
-          strongSelf->_downloadIdentifier = nil;
-          strongSelf->_cacheSentinel++;
-          
-          void (^calloutBlock)(ASNetworkImageNode *inst);
-          
-          if (newImage) {
-            if (_delegateFlags.delegateDidLoadImageWithInfo) {
-              calloutBlock = ^(ASNetworkImageNode *strongSelf) {
-                auto info = [[ASNetworkImageLoadInfo alloc] initWithURL:URL sourceType:imageSource downloadIdentifier:downloadIdentifier userInfo:userInfo];
-                [delegate imageNode:strongSelf didLoadImage:newImage info:info];
-              };
-            } else if (_delegateFlags.delegateDidLoadImage) {
-              calloutBlock = ^(ASNetworkImageNode *strongSelf) {
-                [delegate imageNode:strongSelf didLoadImage:newImage];
-              };
-            }
-          } else if (error && _delegateFlags.delegateDidFailWithError) {
-            calloutBlock = ^(ASNetworkImageNode *strongSelf) {
-              [delegate imageNode:strongSelf didFailWithError:error];
-            };
-          }
-          
-          if (calloutBlock) {
-            ASPerformBlockOnMainThread(^{
-              if (auto strongSelf = weakSelf) {
-                calloutBlock(strongSelf);
-              }
-            });
-          }
-        });
+        } else if (error && strongSelf->_delegateFlags.delegateDidFailWithError) {
+          ASDN::MutexUnlocker u(strongSelf->__instanceLock__);
+          [delegate imageNode:strongSelf didFailWithError:error];
+        }
       };
 
       // As the _cache and _downloader is only set once in the intializer we don't have to use a
       // lock in here
       if (_cache != nil) {
-        NSInteger cacheSentinel = ASLockedSelf(++_cacheSentinel);
+        NSUUID *cacheUUID = [NSUUID UUID];
+        __instanceLock__.lock();
+          _cacheUUID = cacheUUID;
+        __instanceLock__.unlock();
 
-        as_log_verbose(ASImageLoadingLog(), "Decaching image for %@ url: %@", self, URL);
+        as_log_verbose(ASImageLoadingLog(), "Decaching image for %@ urls: %@", self, URLs);
         
         ASImageCacherCompletion completion = ^(id <ASImageContainerProtocol> imageContainer) {
-          // If the cache sentinel changed, that means this request was cancelled.
-          if (ASLockedSelf(_cacheSentinel != cacheSentinel)) {
+          // If the cache UUID changed, that means this request was cancelled.
+          __instanceLock__.lock();
+          NSUUID *currentCacheUUID = _cacheUUID;
+          __instanceLock__.unlock();
+          
+          if (!ASObjectIsEqual(currentCacheUUID, cacheUUID)) {
             return;
           }
           
           if ([imageContainer asdk_image] == nil && _downloader != nil) {
-            [self _downloadImageWithCompletion:^(id<ASImageContainerProtocol> imageContainer, NSError *error, id downloadIdentifier, id userInfo) {
-              finished(imageContainer, error, downloadIdentifier, ASNetworkImageSourceDownload, userInfo);
+            [self _downloadImageWithCompletion:^(id<ASImageContainerProtocol> imageContainer, NSError *error, id downloadIdentifier) {
+              finished(imageContainer, error, downloadIdentifier, ASNetworkImageSourceDownload);
             }];
           } else {
-            as_log_verbose(ASImageLoadingLog(), "Decached image for %@ img: %@ url: %@", self, [imageContainer asdk_image], URL);
-            finished(imageContainer, nil, nil, ASNetworkImageSourceAsynchronousCache, nil);
+            as_log_verbose(ASImageLoadingLog(), "Decached image for %@ img: %@ urls: %@", self, [imageContainer asdk_image], URLs);
+            finished(imageContainer, nil, nil, ASNetworkImageSourceAsynchronousCache);
           }
         };
-        [_cache cachedImageWithURL:URL
-                     callbackQueue:[self callbackQueue]
-                        completion:completion];
+        
+        if (_cacheFlags.cacheSupportsCachedURLs) {
+          [_cache cachedImageWithURLs:URLs
+                        callbackQueue:dispatch_get_main_queue()
+                           completion:completion];
+        } else {
+          [_cache cachedImageWithURL:[URLs lastObject]
+                       callbackQueue:dispatch_get_main_queue()
+                          completion:completion];
+        }
       } else {
-        [self _downloadImageWithCompletion:^(id<ASImageContainerProtocol> imageContainer, NSError *error, id downloadIdentifier, id userInfo) {
-          finished(imageContainer, error, downloadIdentifier, ASNetworkImageSourceDownload, userInfo);
+        [self _downloadImageWithCompletion:^(id<ASImageContainerProtocol> imageContainer, NSError *error, id downloadIdentifier) {
+          finished(imageContainer, error, downloadIdentifier, ASNetworkImageSourceDownload);
         }];
       }
     }
@@ -786,8 +822,7 @@
   
   id<ASNetworkImageNodeDelegate> delegate = nil;
   
-  {
-    ASLockScopeSelf();
+  __instanceLock__.lock();
     if (_delegateFlags.delegateDidFinishDecoding && self.layer.contents != nil) {
       /* We store the image quality in _currentImageQuality whenever _image is set. On the following displayDidFinish, we'll know that
        _currentImageQuality is the quality of the image that has just finished rendering. In order for this to be accurate, we
@@ -802,7 +837,8 @@
       // Assign the delegate to be used
       delegate = _delegate;
     }
-  }
+  
+  __instanceLock__.unlock();
   
   if (delegate != nil) {
     [delegate imageNodeDidFinishDecoding:self];

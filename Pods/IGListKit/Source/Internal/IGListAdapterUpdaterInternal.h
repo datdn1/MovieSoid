@@ -1,8 +1,10 @@
 /**
  * Copyright (c) 2016-present, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
  */
 
 #import <Foundation/Foundation.h>
@@ -25,7 +27,7 @@ FOUNDATION_EXTERN void convertReloadToDeleteInsert(NSMutableIndexSet *reloads,
 @interface IGListAdapterUpdater ()
 
 @property (nonatomic, copy, nullable) NSArray *fromObjects;
-@property (nonatomic, copy, nullable) IGListToObjectBlock toObjectsBlock;
+@property (nonatomic, copy, nullable) NSArray *toObjects;
 @property (nonatomic, copy, nullable) NSArray *pendingTransitionToObjects;
 @property (nonatomic, strong) NSMutableArray<IGListUpdatingCompletion> *completionBlocks;
 

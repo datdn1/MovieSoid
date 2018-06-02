@@ -1,8 +1,10 @@
 /**
  * Copyright (c) 2016-present, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
  */
 
 #import "IGListDisplayHandler.h"
@@ -14,6 +16,7 @@
 
 @interface IGListDisplayHandler ()
 
+@property (nonatomic, strong) NSCountedSet *visibleListSections;
 @property (nonatomic, strong) NSMapTable *visibleViewObjectMap;
 
 @end
@@ -22,20 +25,20 @@
 
 - (instancetype)init {
     if (self = [super init]) {
-        _visibleListSections = [NSCountedSet new];
+        _visibleListSections = [[NSCountedSet alloc] init];
         _visibleViewObjectMap = [[NSMapTable alloc] initWithKeyOptions:NSMapTableStrongMemory valueOptions:NSMapTableStrongMemory capacity:0];
     }
     return self;
 }
 
-- (id)_pluckObjectForView:(UICollectionReusableView *)view {
+- (id)pluckObjectForView:(UICollectionReusableView *)view {
     NSMapTable *viewObjectMap = self.visibleViewObjectMap;
     id object = [viewObjectMap objectForKey:view];
     [viewObjectMap removeObjectForKey:view];
     return object;
 }
 
-- (void)_willDisplayReusableView:(UICollectionReusableView *)view
+- (void)willDisplayReusableView:(UICollectionReusableView *)view
                  forListAdapter:(IGListAdapter *)listAdapter
               sectionController:(IGListSectionController *)sectionController
                          object:(id)object
@@ -54,7 +57,7 @@
     [visibleListSections addObject:sectionController];
 }
 
-- (void)_didEndDisplayingReusableView:(UICollectionReusableView *)view
+- (void)didEndDisplayingReusableView:(UICollectionReusableView *)view
                       forListAdapter:(IGListAdapter *)listAdapter
                    sectionController:(IGListSectionController *)sectionController
                               object:(id)object
@@ -83,7 +86,7 @@
                    sectionController:(IGListSectionController *)sectionController
                               object:(id)object
                            indexPath:(NSIndexPath *)indexPath {
-    [self _willDisplayReusableView:view forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
+    [self willDisplayReusableView:view forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
 }
 
 - (void)didEndDisplayingSupplementaryView:(UICollectionReusableView *)view
@@ -91,8 +94,8 @@
                         sectionController:(IGListSectionController *)sectionController
                                 indexPath:(NSIndexPath *)indexPath {
     // if cell display events break, don't send display events when the object has disappeared
-    id object = [self _pluckObjectForView:view];
-    [self _didEndDisplayingReusableView:view forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
+    id object = [self pluckObjectForView:view];
+    [self didEndDisplayingReusableView:view forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
 }
 
 - (void)willDisplayCell:(UICollectionViewCell *)cell
@@ -102,7 +105,7 @@
               indexPath:(NSIndexPath *)indexPath {
     id <IGListDisplayDelegate> displayDelegate = [sectionController displayDelegate];
     [displayDelegate listAdapter:listAdapter willDisplaySectionController:sectionController cell:cell atIndex:indexPath.item];
-    [self _willDisplayReusableView:cell forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
+    [self willDisplayReusableView:cell forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
 }
 
 - (void)didEndDisplayingCell:(UICollectionViewCell *)cell
@@ -110,13 +113,13 @@
            sectionController:(IGListSectionController *)sectionController
                    indexPath:(NSIndexPath *)indexPath {
     // if cell display events break, don't send cell events to the displayDelegate when the object has disappeared
-    id object = [self _pluckObjectForView:cell];
+    id object = [self pluckObjectForView:cell];
     if (object == nil) {
         return;
     }
 
     [sectionController.displayDelegate listAdapter:listAdapter didEndDisplayingSectionController:sectionController cell:cell atIndex:indexPath.item];
-    [self _didEndDisplayingReusableView:cell forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
+    [self didEndDisplayingReusableView:cell forListAdapter:listAdapter sectionController:sectionController object:object indexPath:indexPath];
 }
 
 @end

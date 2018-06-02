@@ -28,7 +28,7 @@ static NSUInteger const kBackgroundChildIndex = 1;
 
 #pragma mark - Class
 
-+ (instancetype)backgroundLayoutSpecWithChild:(id<ASLayoutElement>)child background:(id<ASLayoutElement>)background NS_RETURNS_RETAINED
++ (instancetype)backgroundLayoutSpecWithChild:(id<ASLayoutElement>)child background:(id<ASLayoutElement>)background;
 {
   return [[self alloc] initWithChild:child background:background];
 }

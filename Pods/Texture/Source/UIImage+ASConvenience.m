@@ -16,7 +16,6 @@
 //
 
 #import <AsyncDisplayKit/UIImage+ASConvenience.h>
-#import <AsyncDisplayKit/ASGraphicsContext.h>
 #import <AsyncDisplayKit/ASInternalHelpers.h>
 #import <AsyncDisplayKit/ASAssert.h>
 
@@ -24,7 +23,7 @@
 
 @implementation UIImage (ASDKFastImageNamed)
 
-UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollection) NS_RETURNS_RETAINED
+UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollection)
 {
   static NSCache *imageCache = nil;
   static dispatch_once_t onceToken;
@@ -55,12 +54,12 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
   return image;
 }
 
-+ (UIImage *)as_imageNamed:(NSString *)imageName NS_RETURNS_RETAINED
++ (UIImage *)as_imageNamed:(NSString *)imageName
 {
   return cachedImageNamed(imageName, nil);
 }
 
-+ (UIImage *)as_imageNamed:(NSString *)imageName compatibleWithTraitCollection:(UITraitCollection *)traitCollection NS_RETURNS_RETAINED
++ (UIImage *)as_imageNamed:(NSString *)imageName compatibleWithTraitCollection:(UITraitCollection *)traitCollection
 {
   return cachedImageNamed(imageName, traitCollection);
 }
@@ -73,7 +72,7 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
 
 + (UIImage *)as_resizableRoundedImageWithCornerRadius:(CGFloat)cornerRadius
                                           cornerColor:(UIColor *)cornerColor
-                                            fillColor:(UIColor *)fillColor NS_RETURNS_RETAINED
+                                            fillColor:(UIColor *)fillColor
 {
   return [self as_resizableRoundedImageWithCornerRadius:cornerRadius
                                             cornerColor:cornerColor
@@ -88,7 +87,7 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
                                           cornerColor:(UIColor *)cornerColor
                                             fillColor:(UIColor *)fillColor
                                           borderColor:(UIColor *)borderColor
-                                          borderWidth:(CGFloat)borderWidth NS_RETURNS_RETAINED
+                                          borderWidth:(CGFloat)borderWidth
 {
   return [self as_resizableRoundedImageWithCornerRadius:cornerRadius
                                             cornerColor:cornerColor
@@ -105,7 +104,7 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
                                           borderColor:(UIColor *)borderColor
                                           borderWidth:(CGFloat)borderWidth
                                        roundedCorners:(UIRectCorner)roundedCorners
-                                                scale:(CGFloat)scale NS_RETURNS_RETAINED
+                                                scale:(CGFloat)scale
 {
   static NSCache *__pathCache = nil;
   static dispatch_once_t onceToken;
@@ -139,7 +138,7 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
   
   // We should probably check if the background color has any alpha component but that
   // might be expensive due to needing to check mulitple color spaces.
-  ASGraphicsBeginImageContextWithOptions(bounds.size, cornerColor != nil, scale);
+  UIGraphicsBeginImageContextWithOptions(bounds.size, cornerColor != nil, scale);
   
   BOOL contextIsClean = YES;
   if (cornerColor) {
@@ -169,7 +168,8 @@ UIImage *cachedImageNamed(NSString *imageName, UITraitCollection *traitCollectio
     [strokePath strokeWithBlendMode:(canUseCopy ? kCGBlendModeCopy : kCGBlendModeNormal) alpha:1];
   }
   
-  UIImage *result = ASGraphicsGetImageAndEndCurrentContext();
+  UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
+  UIGraphicsEndImageContext();
   
   UIEdgeInsets capInsets = UIEdgeInsetsMake(cornerRadius, cornerRadius, cornerRadius, cornerRadius);
   result = [result resizableImageWithCapInsets:capInsets resizingMode:UIImageResizingModeStretch];

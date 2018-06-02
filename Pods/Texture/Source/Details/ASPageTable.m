@@ -79,7 +79,7 @@ extern NSPointerArray *ASPageCoordinatesForPagesThatIntersectRect(CGRect rect, C
 
 @implementation NSMapTable (ASPageTableMethods)
 
-+ (instancetype)pageTableWithValuePointerFunctions:(NSPointerFunctions *)valueFuncs NS_RETURNS_RETAINED
++ (instancetype)pageTableWithValuePointerFunctions:(NSPointerFunctions *)valueFuncs
 {
   static NSPointerFunctions *pageCoordinatesFuncs;
   static dispatch_once_t onceToken;
@@ -90,7 +90,7 @@ extern NSPointerArray *ASPageCoordinatesForPagesThatIntersectRect(CGRect rect, C
   return [[NSMapTable alloc] initWithKeyPointerFunctions:pageCoordinatesFuncs valuePointerFunctions:valueFuncs capacity:0];
 }
 
-+ (ASPageTable *)pageTableForStrongObjectPointers NS_RETURNS_RETAINED
++ (ASPageTable *)pageTableForStrongObjectPointers
 {
   static NSPointerFunctions *strongObjectPointerFuncs;
   static dispatch_once_t onceToken;
@@ -100,7 +100,7 @@ extern NSPointerArray *ASPageCoordinatesForPagesThatIntersectRect(CGRect rect, C
   return [self pageTableWithValuePointerFunctions:strongObjectPointerFuncs];
 }
 
-+ (ASPageTable *)pageTableForWeakObjectPointers NS_RETURNS_RETAINED
++ (ASPageTable *)pageTableForWeakObjectPointers
 {
   static NSPointerFunctions *weakObjectPointerFuncs;
   static dispatch_once_t onceToken;
@@ -110,7 +110,7 @@ extern NSPointerArray *ASPageCoordinatesForPagesThatIntersectRect(CGRect rect, C
   return [self pageTableWithValuePointerFunctions:weakObjectPointerFuncs];
 }
 
-+ (ASPageToLayoutAttributesTable *)pageTableWithLayoutAttributes:(id<NSFastEnumeration>)layoutAttributesEnumerator contentSize:(CGSize)contentSize pageSize:(CGSize)pageSize NS_RETURNS_RETAINED
++ (ASPageToLayoutAttributesTable *)pageTableWithLayoutAttributes:(id<NSFastEnumeration>)layoutAttributesEnumerator contentSize:(CGSize)contentSize pageSize:(CGSize)pageSize
 {
   ASPageToLayoutAttributesTable *result = [ASPageTable pageTableForStrongObjectPointers];
   for (UICollectionViewLayoutAttributes *attrs in layoutAttributesEnumerator) {

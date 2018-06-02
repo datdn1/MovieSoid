@@ -93,7 +93,6 @@
 }
 
 // subclass overrides
-- (void)nodeDidLoad {}
 - (void)nodeDidLayout {}
 
 - (void)didEnterVisibleState {}

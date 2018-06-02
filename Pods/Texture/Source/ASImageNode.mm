@@ -22,11 +22,9 @@
 #import <AsyncDisplayKit/_ASDisplayLayer.h>
 #import <AsyncDisplayKit/ASAssert.h>
 #import <AsyncDisplayKit/ASDimension.h>
-#import <AsyncDisplayKit/ASDisplayNode+FrameworkPrivate.h>
-#import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 #import <AsyncDisplayKit/ASDisplayNodeExtras.h>
 #import <AsyncDisplayKit/ASDisplayNode+Beta.h>
-#import <AsyncDisplayKit/ASGraphicsContext.h>
 #import <AsyncDisplayKit/ASLayout.h>
 #import <AsyncDisplayKit/ASTextNode.h>
 #import <AsyncDisplayKit/ASImageNode+AnimatedImagePrivate.h>
@@ -40,6 +38,8 @@
 
 // TODO: It would be nice to remove this dependency; it's the only subclass using more than +FrameworkSubclasses.h
 #import <AsyncDisplayKit/ASDisplayNodeInternal.h>
+
+#include <functional>
 
 static const CGSize kMinReleaseImageOnBackgroundSize = {20.0, 20.0};
 
@@ -75,14 +75,14 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
  */
 @interface ASImageNodeContentsKey : NSObject
 
-@property (nonatomic) UIImage *image;
+@property (nonatomic, strong) UIImage *image;
 @property CGSize backingSize;
 @property CGRect imageDrawRect;
 @property BOOL isOpaque;
-@property (nonatomic, copy) UIColor *backgroundColor;
-@property (nonatomic) ASDisplayNodeContextModifier willDisplayNodeContentWithRenderingContext;
-@property (nonatomic) ASDisplayNodeContextModifier didDisplayNodeContentWithRenderingContext;
-@property (nonatomic) asimagenode_modification_block_t imageModificationBlock;
+@property (nonatomic, strong) UIColor *backgroundColor;
+@property (nonatomic, copy) ASDisplayNodeContextModifier willDisplayNodeContentWithRenderingContext;
+@property (nonatomic, copy) ASDisplayNodeContextModifier didDisplayNodeContentWithRenderingContext;
+@property (nonatomic, copy) asimagenode_modification_block_t imageModificationBlock;
 
 @end
 
@@ -148,7 +148,7 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
 @private
   UIImage *_image;
   ASWeakMapEntry *_weakCacheEntry;  // Holds a reference that keeps our contents in cache.
-  UIColor *_placeholderColor;
+
 
   void (^_displayCompletionBlock)(BOOL canceled);
   
@@ -213,10 +213,11 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
   
   ASDN::MutexLocker l(__instanceLock__);
   
-  ASGraphicsBeginImageContextWithOptions(size, NO, 1);
+  UIGraphicsBeginImageContext(size);
   [self.placeholderColor setFill];
   UIRectFill(CGRectMake(0, 0, size.width, size.height));
-  UIImage *image = ASGraphicsGetImageAndEndCurrentContext();
+  UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+  UIGraphicsEndImageContext();
   
   return image;
 }
@@ -225,7 +226,9 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
 
 - (CGSize)calculateSizeThatFits:(CGSize)constrainedSize
 {
-  auto image = ASLockedSelf(_image);
+  __instanceLock__.lock();
+  UIImage *image = _image;
+  __instanceLock__.unlock();
 
   if (image == nil) {
     return [super calculateSizeThatFits:constrainedSize];
@@ -281,30 +284,31 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
 
 - (UIImage *)image
 {
-  return ASLockedSelf(_image);
+  ASDN::MutexLocker l(__instanceLock__);
+  return _image;
 }
 
-- (UIColor *)placeholderColor
+- (UIImage *)_locked_Image
 {
-  return ASLockedSelf(_placeholderColor);
+  return _image;
 }
 
 - (void)setPlaceholderColor:(UIColor *)placeholderColor
 {
-  ASLockScopeSelf();
-  if (ASCompareAssignCopy(_placeholderColor, placeholderColor)) {
-    _placeholderEnabled = (placeholderColor != nil);
-  }
+  _placeholderColor = placeholderColor;
+
+  // prevent placeholders if we don't have a color
+  self.placeholderEnabled = placeholderColor != nil;
 }
 
 #pragma mark - Drawing
 
 - (NSObject *)drawParametersForAsyncLayer:(_ASDisplayLayer *)layer
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   
   ASImageNodeDrawParameters *drawParameters = [[ASImageNodeDrawParameters alloc] init];
-  drawParameters->_image = _image;
+  drawParameters->_image = [self _locked_Image];
   drawParameters->_bounds = [self threadSafeBounds];
   drawParameters->_opaque = self.opaque;
   drawParameters->_contentsScale = _contentsScaleForDisplay;
@@ -321,7 +325,7 @@ typedef void (^ASImageNodeDrawParametersBlock)(ASWeakMapEntry *entry);
 
   // Hack for now to retain the weak entry that was created while this drawing happened
   drawParameters->_didDrawBlock = ^(ASWeakMapEntry *entry){
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     _weakCacheEntry = entry;
   };
   
@@ -468,7 +472,7 @@ static ASDN::StaticMutex& cacheLock = *new ASDN::StaticMutex;
 
 + (UIImage *)createContentsForkey:(ASImageNodeContentsKey *)key drawParameters:(id)drawParameters isCancelled:(asdisplaynode_iscancelled_block_t)isCancelled
 {
-  // The following `ASGraphicsBeginImageContextWithOptions` call will sometimes take take longer than 5ms on an
+  // The following `UIGraphicsBeginImageContextWithOptions` call will sometimes take take longer than 5ms on an
   // A5 processor for a 400x800 backingSize.
   // Check for cancellation before we call it.
   if (isCancelled()) {
@@ -477,7 +481,7 @@ static ASDN::StaticMutex& cacheLock = *new ASDN::StaticMutex;
 
   // Use contentsScale of 1.0 and do the contentsScale handling in boundsSizeInPixels so ASCroppedImageBackingSizeAndDrawRectInBounds
   // will do its rounding on pixel instead of point boundaries
-  ASGraphicsBeginImageContextWithOptions(key.backingSize, key.isOpaque, 1.0);
+  UIGraphicsBeginImageContextWithOptions(key.backingSize, key.isOpaque, 1.0);
   
   BOOL contextIsClean = YES;
   
@@ -518,13 +522,16 @@ static ASDN::StaticMutex& cacheLock = *new ASDN::StaticMutex;
     key.didDisplayNodeContentWithRenderingContext(context, drawParameters);
   }
 
-  // Check cancellation one last time before forming image.
+  // The following `UIGraphicsGetImageFromCurrentImageContext` call will commonly take more than 20ms on an
+  // A5 processor.  Check for cancellation before we call it.
   if (isCancelled()) {
-    ASGraphicsEndImageContext();
+    UIGraphicsEndImageContext();
     return nil;
   }
 
-  UIImage *result = ASGraphicsGetImageAndEndCurrentContext();
+  UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
+  
+  UIGraphicsEndImageContext();
   
   if (key.imageModificationBlock) {
     result = key.imageModificationBlock(result);
@@ -735,7 +742,7 @@ static ASDN::StaticMutex& cacheLock = *new ASDN::StaticMutex;
 extern asimagenode_modification_block_t ASImageNodeRoundBorderModificationBlock(CGFloat borderWidth, UIColor *borderColor)
 {
   return ^(UIImage *originalImage) {
-    ASGraphicsBeginImageContextWithOptions(originalImage.size, NO, originalImage.scale);
+    UIGraphicsBeginImageContextWithOptions(originalImage.size, NO, originalImage.scale);
     UIBezierPath *roundOutline = [UIBezierPath bezierPathWithOvalInRect:(CGRect){CGPointZero, originalImage.size}];
 
     // Make the image round
@@ -751,21 +758,24 @@ extern asimagenode_modification_block_t ASImageNodeRoundBorderModificationBlock(
       [roundOutline stroke];
     }
 
-    return ASGraphicsGetImageAndEndCurrentContext();
+    UIImage *modifiedImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return modifiedImage;
   };
 }
 
 extern asimagenode_modification_block_t ASImageNodeTintColorModificationBlock(UIColor *color)
 {
   return ^(UIImage *originalImage) {
-    ASGraphicsBeginImageContextWithOptions(originalImage.size, NO, originalImage.scale);
+    UIGraphicsBeginImageContextWithOptions(originalImage.size, NO, originalImage.scale);
     
     // Set color and render template
     [color setFill];
     UIImage *templateImage = [originalImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     [templateImage drawAtPoint:CGPointZero blendMode:kCGBlendModeCopy alpha:1];
     
-    UIImage *modifiedImage = ASGraphicsGetImageAndEndCurrentContext();
+    UIImage *modifiedImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
 
     // if the original image was stretchy, keep it stretchy
     if (!UIEdgeInsetsEqualToEdgeInsets(originalImage.capInsets, UIEdgeInsetsZero)) {

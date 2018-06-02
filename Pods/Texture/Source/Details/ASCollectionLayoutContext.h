@@ -26,13 +26,13 @@ NS_ASSUME_NONNULL_BEGIN
 AS_SUBCLASSING_RESTRICTED
 @interface ASCollectionLayoutContext : NSObject
 
-@property (nonatomic, readonly) CGSize viewportSize;
-@property (nonatomic, readonly) CGPoint initialContentOffset;
-@property (nonatomic, readonly) ASScrollDirection scrollableDirections;
+@property (nonatomic, assign, readonly) CGSize viewportSize;
+@property (nonatomic, assign, readonly) CGPoint initialContentOffset;
+@property (nonatomic, assign, readonly) ASScrollDirection scrollableDirections;
 @property (nonatomic, weak, readonly) ASElementMap *elements;
-@property (nullable, nonatomic, readonly) id additionalInfo;
+@property (nonatomic, strong, readonly, nullable) id additionalInfo;
 
-- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)init __unavailable;
 
 @end
 

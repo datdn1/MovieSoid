@@ -20,15 +20,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@protocol ASCATransactionQueueObserving <NSObject>
-- (void)prepareForCATransactionCommit;
-@end
-
-@interface ASAbstractRunLoopQueue : NSObject
-@end
-
 AS_SUBCLASSING_RESTRICTED
-@interface ASRunLoopQueue<ObjectType> : ASAbstractRunLoopQueue <NSLocking>
+@interface ASRunLoopQueue<ObjectType> : NSObject <NSLocking>
 
 /**
  * Create a new queue with the given run loop and handler.
@@ -48,40 +41,19 @@ AS_SUBCLASSING_RESTRICTED
 
 - (void)enqueue:(ObjectType)object;
 
-@property (readonly) BOOL isEmpty;
+@property (nonatomic, readonly) BOOL isEmpty;
 
-@property (nonatomic) NSUInteger batchSize;           // Default == 1.
-@property (nonatomic) BOOL ensureExclusiveMembership; // Default == YES.  Set-like behavior.
+@property (nonatomic, assign) NSUInteger batchSize;           // Default == 1.
+@property (nonatomic, assign) BOOL ensureExclusiveMembership; // Default == YES.  Set-like behavior.
 
 @end
 
 AS_SUBCLASSING_RESTRICTED
-@interface ASCATransactionQueue : ASAbstractRunLoopQueue
-
-@property (readonly) BOOL isEmpty;
-
-@property (readonly, getter=isEnabled) BOOL enabled;
-
-/**
- * The queue to run on main run loop before CATransaction commit.
- *
- * @discussion this queue will run after ASRunLoopQueue and before CATransaction commit
- * to get last chance of updating/coalesce info like interface state.
- * Each node will only be called once per transaction commit to reflect interface change.
- */
-@property (class, readonly) ASCATransactionQueue *sharedQueue;
-+ (ASCATransactionQueue *)sharedQueue NS_RETURNS_RETAINED;
-
-- (void)enqueue:(id<ASCATransactionQueueObserving>)object;
-
-@end
-
 @interface ASDeallocQueue : NSObject
 
-@property (class, readonly) ASDeallocQueue *sharedDeallocationQueue;
-+ (ASDeallocQueue *)sharedDeallocationQueue NS_RETURNS_RETAINED;
+@property (class, atomic, readonly) ASDeallocQueue *sharedDeallocationQueue;
 
-- (void)drain;
+- (void)test_drain;
 
 - (void)releaseObjectInBackground:(id __strong _Nullable * _Nonnull)objectPtr;
 

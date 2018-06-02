@@ -20,6 +20,7 @@
 #import <AsyncDisplayKit/ASAssert.h>
 #import <AsyncDisplayKit/ASBaseDefines.h>
 #import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 #import <AsyncDisplayKit/ASDisplayNodeExtras.h>
 #import <AsyncDisplayKit/ASEqualityHelpers.h>
 #import <AsyncDisplayKit/ASImageNode+Private.h>
@@ -27,7 +28,6 @@
 #import <AsyncDisplayKit/ASImageProtocols.h>
 #import <AsyncDisplayKit/ASInternalHelpers.h>
 #import <AsyncDisplayKit/ASNetworkImageNode.h>
-#import <AsyncDisplayKit/ASThread.h>
 #import <AsyncDisplayKit/ASWeakProxy.h>
 
 #define ASAnimatedImageDebug  0
@@ -44,18 +44,17 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 
 - (void)setAnimatedImage:(id <ASAnimatedImageProtocol>)animatedImage
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_setAnimatedImage:animatedImage];
 }
 
 - (void)_locked_setAnimatedImage:(id <ASAnimatedImageProtocol>)animatedImage
 {
-  if (ASObjectIsEqual(_animatedImage, animatedImage) && (animatedImage == nil || animatedImage.playbackReady)) {
+  if (ASObjectIsEqual(_animatedImage, animatedImage)) {
     return;
   }
   
   id <ASAnimatedImageProtocol> previousAnimatedImage = _animatedImage;
-  
   _animatedImage = animatedImage;
   
   if (animatedImage != nil) {
@@ -81,11 +80,6 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
   }
   
   [self animatedImageSet:_animatedImage previousAnimatedImage:previousAnimatedImage];
-    
-  // Animated image can take while to dealloc, do it off the main queue
-  if (previousAnimatedImage != nil) {
-    ASPerformBackgroundDeallocation(&previousAnimatedImage);
-  }
 }
 
 - (void)animatedImageSet:(id <ASAnimatedImageProtocol>)newAnimatedImage previousAnimatedImage:(id <ASAnimatedImageProtocol>)previousAnimatedImage
@@ -95,13 +89,13 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 
 - (id <ASAnimatedImageProtocol>)animatedImage
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _animatedImage;
 }
 
 - (void)setAnimatedImagePaused:(BOOL)animatedImagePaused
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
 
   _animatedImagePaused = animatedImagePaused;
 
@@ -110,14 +104,14 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 
 - (BOOL)animatedImagePaused
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   return _animatedImagePaused;
 }
 
 - (void)setCoverImageCompleted:(UIImage *)coverImage
 {
   if (ASInterfaceStateIncludesDisplay(self.interfaceState)) {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     [self _locked_setCoverImageCompleted:coverImage];
   }
 }
@@ -135,7 +129,7 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 
 - (void)setCoverImage:(UIImage *)coverImage
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_setCoverImage:coverImage];
 }
 
@@ -171,12 +165,12 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
     [_displayLink removeFromRunLoop:[NSRunLoop mainRunLoop] forMode:_animatedImageRunLoopMode];
     [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:runLoopMode];
   }
-  _animatedImageRunLoopMode = [runLoopMode copy];
+  _animatedImageRunLoopMode = runLoopMode;
 }
 
 - (void)setShouldAnimate:(BOOL)shouldAnimate
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_setShouldAnimate:shouldAnimate];
 }
 
@@ -209,7 +203,7 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 {
   ASDisplayNodeAssertMainThread();
 
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_startAnimating];
 }
 
@@ -251,7 +245,7 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
 {
   ASDisplayNodeAssertMainThread();
   
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
   [self _locked_stopAnimating];
 }
 
@@ -322,7 +316,7 @@ NSString *const ASAnimatedImageDefaultRunLoopMode = NSRunLoopCommonModes;
   CFTimeInterval timeBetweenLastFire;
   if (self.lastDisplayLinkFire == 0) {
     timeBetweenLastFire = 0;
-  } else if (AS_AVAILABLE_IOS_TVOS(10, 10)) {
+  } else if (AS_AT_LEAST_IOS10){
     timeBetweenLastFire = displayLink.targetTimestamp - displayLink.timestamp;
   } else {
     timeBetweenLastFire = CACurrentMediaTime() - self.lastDisplayLinkFire;

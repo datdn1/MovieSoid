@@ -35,12 +35,12 @@ NS_ASSUME_NONNULL_BEGIN
  * Note: If this property is read on the main thread, the enumeration will attempt to go up
  *  the layer hierarchy if it finds a break in the display node hierarchy.
  */
-@property (readonly) id<NSFastEnumeration> supernodes;
+@property (atomic, readonly) id<NSFastEnumeration> supernodes;
 
 /**
  * Same as `supernodes` but begins the enumeration with self.
  */
-@property (readonly) id<NSFastEnumeration> supernodesIncludingSelf;
+@property (atomic, readonly) id<NSFastEnumeration> supernodesIncludingSelf;
 
 /**
  * Searches the supernodes of this node for one matching the given class.
@@ -56,7 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * e.g. "(<MYTextNode: 0xFFFF>, <MYTextContainingNode: 0xFFFF>, <MYCellNode: 0xFFFF>)"
  */
-@property (copy, readonly) NSString *ancestryDescription;
+@property (atomic, copy, readonly) NSString *ancestryDescription;
 
 @end
 

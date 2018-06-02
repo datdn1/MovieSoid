@@ -1,18 +1,12 @@
 //
 //  ASTextLine.h
-//  Texture
+//  Modified from YYText <https://github.com/ibireme/YYText>
 //
-//  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
-//  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
-//  grant of patent rights can be found in the PATENTS file in the same directory.
+//  Created by ibireme on 15/3/10.
+//  Copyright (c) 2015 ibireme.
 //
-//  Modifications to this file made after 4/13/2017 are: Copyright (c) through the present,
-//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
+//  This source code is licensed under the MIT-style license found in the
+//  LICENSE file in the root directory of this source tree.
 //
 
 #import <UIKit/UIKit.h>
@@ -28,11 +22,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface ASTextLine : NSObject
 
-+ (instancetype)lineWithCTLine:(CTLineRef)CTLine position:(CGPoint)position vertical:(BOOL)isVertical NS_RETURNS_RETAINED;
++ (instancetype)lineWithCTLine:(CTLineRef)CTLine position:(CGPoint)position vertical:(BOOL)isVertical;
 
 @property (nonatomic) NSUInteger index;     ///< line index
 @property (nonatomic) NSUInteger row;       ///< line row
-@property (nullable, nonatomic) NSArray<NSArray<ASTextRunGlyphRange *> *> *verticalRotateRange; ///< Run rotate range
+@property (nullable, nonatomic, strong) NSArray<NSArray<ASTextRunGlyphRange *> *> *verticalRotateRange; ///< Run rotate range
 
 @property (nonatomic, readonly) CTLineRef CTLine;   ///< CoreText line
 @property (nonatomic, readonly) NSRange range;      ///< string range
@@ -79,7 +73,7 @@ typedef NS_ENUM(NSUInteger, ASTextRunGlyphDrawMode) {
 @interface ASTextRunGlyphRange : NSObject
 @property (nonatomic) NSRange glyphRangeInRun;
 @property (nonatomic) ASTextRunGlyphDrawMode drawMode;
-+ (instancetype)rangeWithRange:(NSRange)range drawMode:(ASTextRunGlyphDrawMode)mode NS_RETURNS_RETAINED;
++ (instancetype)rangeWithRange:(NSRange)range drawMode:(ASTextRunGlyphDrawMode)mode;
 @end
 
 NS_ASSUME_NONNULL_END

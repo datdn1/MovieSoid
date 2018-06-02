@@ -25,7 +25,6 @@
 #import <AsyncDisplayKit/ASDisplayNodeInternal.h>
 #import <AsyncDisplayKit/ASDisplayNode+FrameworkPrivate.h>
 #import <AsyncDisplayKit/ASObjectDescriptionHelpers.h>
-#import <AsyncDisplayKit/ASLog.h>
 
 @implementation _ASDisplayLayer
 {
@@ -94,7 +93,6 @@
 - (void)setNeedsLayout
 {
   ASDisplayNodeAssertMainThread();
-  as_log_verbose(ASNodeLog(), "%s on %@", sel_getName(_cmd), self);
   [super setNeedsLayout];
 }
 #endif

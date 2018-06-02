@@ -259,25 +259,13 @@ ASLayoutElementStyleExtensibilityForwarding
   return result;
 }
 
-#pragma mark - NSLocking
-
-- (void)lock
-{
-  __instanceLock__.lock();
-}
-
-- (void)unlock
-{
-  __instanceLock__.unlock();
-}
-
 @end
 
 #pragma mark - ASWrapperLayoutSpec
 
 @implementation ASWrapperLayoutSpec
 
-+ (instancetype)wrapperWithLayoutElement:(id<ASLayoutElement>)layoutElement NS_RETURNS_RETAINED
++ (instancetype)wrapperWithLayoutElement:(id<ASLayoutElement>)layoutElement
 {
   return [[self alloc] initWithLayoutElement:layoutElement];
 }
@@ -291,7 +279,7 @@ ASLayoutElementStyleExtensibilityForwarding
   return self;
 }
 
-+ (instancetype)wrapperWithLayoutElements:(NSArray<id<ASLayoutElement>> *)layoutElements NS_RETURNS_RETAINED
++ (instancetype)wrapperWithLayoutElements:(NSArray<id<ASLayoutElement>> *)layoutElements
 {
   return [[self alloc] initWithLayoutElements:layoutElements];
 }

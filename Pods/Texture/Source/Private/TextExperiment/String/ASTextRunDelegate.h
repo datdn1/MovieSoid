@@ -46,7 +46,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  Additional information about the the run delegate.
  */
-@property (nullable, nonatomic) NSDictionary *userInfo;
+@property (nullable, nonatomic, strong) NSDictionary *userInfo;
 
 /**
  The typographic ascent of glyphs in the run.

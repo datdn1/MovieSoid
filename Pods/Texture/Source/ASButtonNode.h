@@ -34,41 +34,41 @@ typedef NS_ENUM(NSInteger, ASButtonNodeImageAlignment) {
 
 @interface ASButtonNode : ASControlNode
 
-@property (readonly) ASTextNode  * titleNode;
-@property (readonly) ASImageNode * imageNode;
-@property (readonly) ASImageNode * backgroundImageNode;
+@property (nonatomic, readonly) ASTextNode  * titleNode;
+@property (nonatomic, readonly) ASImageNode * imageNode;
+@property (nonatomic, readonly) ASImageNode * backgroundImageNode;
 
 /**
  Spacing between image and title. Defaults to 8.0.
  */
-@property CGFloat contentSpacing;
+@property (nonatomic, assign) CGFloat contentSpacing;
 
 /**
  Whether button should be laid out vertically (image on top of text) or horizontally (image to the left of text).
  ASButton node does not yet support RTL but it should be fairly easy to implement.
  Defaults to YES.
  */
-@property BOOL laysOutHorizontally;
+@property (nonatomic, assign) BOOL laysOutHorizontally;
 
 /** Horizontally align content (text or image).
  Defaults to ASHorizontalAlignmentMiddle.
  */
-@property ASHorizontalAlignment contentHorizontalAlignment;
+@property (nonatomic, assign) ASHorizontalAlignment contentHorizontalAlignment;
 
 /** Vertically align content (text or image).
  Defaults to ASVerticalAlignmentCenter.
  */
-@property ASVerticalAlignment contentVerticalAlignment;
+@property (nonatomic, assign) ASVerticalAlignment contentVerticalAlignment;
 
 /**
  * @discussion The insets used around the title and image node
  */
-@property UIEdgeInsets contentEdgeInsets;
+@property (nonatomic, assign) UIEdgeInsets contentEdgeInsets;
 
 /**
  * @discusstion Whether the image should be aligned at the beginning or at the end of node. Default is `ASButtonNodeImageAlignmentBeginning`.
  */
-@property ASButtonNodeImageAlignment imageAlignment;
+@property (nonatomic, assign) ASButtonNodeImageAlignment imageAlignment;
 
 /**
  *  Returns the styled title associated with the specified state.

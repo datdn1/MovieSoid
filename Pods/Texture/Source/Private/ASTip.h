@@ -43,12 +43,12 @@ AS_SUBCLASSING_RESTRICTED
 /**
  * The node that this tip applies to.
  */
-@property (nonatomic, readonly) ASDisplayNode *node;
+@property (nonatomic, strong, readonly) ASDisplayNode *node;
 
 /**
  * The text to show the user.
  */
-@property (nonatomic, readonly) NSString *text;
+@property (nonatomic, strong, readonly) NSString *text;
 
 @end
 

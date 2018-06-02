@@ -25,8 +25,7 @@
 
 #import <AsyncDisplayKit/AsyncDisplayKit.h>
 #import <AsyncDisplayKit/ASDefaultPlaybackButton.h>
-#import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
-#import <AsyncDisplayKit/ASThread.h>
+#import <AsyncDisplayKit/ASDisplayNode+FrameworkSubclasses.h>
 
 static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 
@@ -168,7 +167,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 {
   NSURL *url = nil;
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     if ([_pendingAsset isKindOfClass:AVURLAsset.class]) {
       url = ((AVURLAsset *)_pendingAsset).URL;
     }
@@ -181,7 +180,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 {
   ASDisplayNodeAssertMainThread();
 
-  [self lock];
+  __instanceLock__.lock();
   
   // Clean out pending asset
   _pendingAsset = nil;
@@ -189,18 +188,22 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
   // Set asset based on interface state
   if ((ASInterfaceStateIncludesPreload(self.interfaceState))) {
     // Don't hold the lock while accessing the subnode
-    [self unlock];
+    __instanceLock__.unlock();
     _videoNode.asset = asset;
     return;
   }
   
   _pendingAsset = asset;
-  [self unlock];
+  __instanceLock__.unlock();
 }
 
 - (AVAsset *)asset
 {
-  return ASLockedSelf(_pendingAsset) ?: _videoNode.asset;
+  __instanceLock__.lock();
+  AVAsset *asset = _pendingAsset;
+  __instanceLock__.unlock();
+
+  return asset ?: _videoNode.asset;
 }
 
 #pragma mark - ASDisplayNode
@@ -209,7 +212,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 {
   [super didLoad];
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     [self createControls];
   }
 }
@@ -220,7 +223,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
   
   AVAsset *pendingAsset = nil;
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
     pendingAsset = _pendingAsset;
     _pendingAsset = nil;
   }
@@ -241,7 +244,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 - (void)createControls
 {
   {
-    ASLockScopeSelf();
+    ASDN::MutexLocker l(__instanceLock__);
 
     if (_controlsDisabled) {
       return;
@@ -607,7 +610,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 
 - (void)showSpinner
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
 
   if (!_spinnerNode) {
   
@@ -640,7 +643,7 @@ static void *ASVideoPlayerNodeContext = &ASVideoPlayerNodeContext;
 
 - (void)removeSpinner
 {
-  ASLockScopeSelf();
+  ASDN::MutexLocker l(__instanceLock__);
 
   if (!_spinnerNode) {
     return;

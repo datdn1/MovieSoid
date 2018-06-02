@@ -35,7 +35,7 @@
 
 #pragma mark - Lifecycle
 
-+ (instancetype)ratioLayoutSpecWithRatio:(CGFloat)ratio child:(id<ASLayoutElement>)child NS_RETURNS_RETAINED
++ (instancetype)ratioLayoutSpecWithRatio:(CGFloat)ratio child:(id<ASLayoutElement>)child
 {
   return [[self alloc] initWithRatio:ratio child:child];
 }

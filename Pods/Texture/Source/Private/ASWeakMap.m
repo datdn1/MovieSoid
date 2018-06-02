@@ -18,8 +18,8 @@
 #import <AsyncDisplayKit/ASWeakMap.h>
 
 @interface ASWeakMapEntry ()
-@property (nonatomic, readonly) id key;
-@property id value;
+@property (nonatomic, strong, readonly) id key;
+@property (atomic, strong) id value;
 @end
 
 @implementation ASWeakMapEntry
@@ -38,7 +38,7 @@
 
 
 @interface ASWeakMap ()
-@property (nonatomic, readonly) NSMapTable<id, ASWeakMapEntry *> *hashTable;
+@property (nonatomic, strong, readonly) NSMapTable<id, ASWeakMapEntry *> *hashTable;
 @end
 
 /**

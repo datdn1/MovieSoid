@@ -16,11 +16,10 @@
 static atomic_bool __ASLogEnabled = ATOMIC_VAR_INIT(YES);
 
 void ASDisableLogging() {
-  atomic_store(&__ASLogEnabled, NO);
-}
-
-void ASEnableLogging() {
-  atomic_store(&__ASLogEnabled, YES);
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    atomic_store(&__ASLogEnabled, NO);
+  });
 }
 
 ASDISPLAYNODE_INLINE BOOL ASLoggingIsEnabled() {
