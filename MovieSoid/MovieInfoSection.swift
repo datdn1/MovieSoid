@@ -10,7 +10,7 @@ import Foundation
 import AsyncDisplayKit
 import IGListKit
 
-class MovieInfoSection: IGListSectionController, IGListSectionType, ASSectionController {
+class MovieInfoSection: ListSectionController, ASSectionController {
     var object: Movies?
 
     func nodeBlockForItem(at index: Int) -> ASCellNodeBlock {
@@ -23,21 +23,21 @@ class MovieInfoSection: IGListSectionController, IGListSectionType, ASSectionCon
         }
     }
     
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         return 1
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.object = object as? Movies
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

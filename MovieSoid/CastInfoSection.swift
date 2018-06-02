@@ -10,7 +10,7 @@ import Foundation
 import AsyncDisplayKit
 import IGListKit
 
-class CastInfoSection: IGListSectionController, IGListSectionType, ASSectionController {
+class CastInfoSection: ListSectionController, ASSectionController {
 
     override init() {
         super.init()
@@ -29,21 +29,21 @@ class CastInfoSection: IGListSectionController, IGListSectionType, ASSectionCont
         }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         return 1
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.object = object as? CastInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

@@ -14,7 +14,6 @@ extern NSString * __nonnull const PINURLErrorDomain;
 
 @required
 - (void)didReceiveData:(nonnull NSData *)data forTask:(nonnull NSURLSessionTask *)task;
-- (void)didCompleteTask:(nonnull NSURLSessionTask *)task withError:(nullable NSError *)error;
 
 @optional
 - (void)didReceiveResponse:(nonnull NSURLResponse *)response forTask:(nonnull NSURLSessionTask *)task;
@@ -32,6 +31,8 @@ typedef void (^PINURLSessionDataTaskCompletion)(NSURLSessionTask * _Nonnull task
 - (nonnull NSURLSessionDataTask *)dataTaskWithRequest:(nonnull NSURLRequest *)request completionHandler:(nonnull PINURLSessionDataTaskCompletion)completionHandler;
 
 - (void)invalidateSessionAndCancelTasks;
+
+- (void)URLSession:(nonnull NSURLSession *)session task:(nonnull NSURLSessionTask *)task didFinishCollectingMetrics:(nonnull NSURLSessionTaskMetrics *)metrics NS_AVAILABLE(10_12, 11_0);
 
 @property (atomic, weak, nullable) id <PINURLSessionManagerDelegate> delegate;
 

@@ -1,11 +1,18 @@
 //
 //  ASLayoutElement.h
-//  AsyncDisplayKit
+//  Texture
 //
 //  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the root directory of this source tree. An additional grant
-//  of patent rights can be found in the PATENTS file in the same directory.
+//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
+//  grant of patent rights can be found in the PATENTS file in the same directory.
+//
+//  Modifications to this file made after 4/13/2017 are: Copyright (c) 2017-present,
+//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 
 #import <AsyncDisplayKit/ASLayoutElementPrivate.h>
@@ -14,6 +21,7 @@
 #import <AsyncDisplayKit/ASStackLayoutElement.h>
 #import <AsyncDisplayKit/ASAbsoluteLayoutElement.h>
 #import <AsyncDisplayKit/ASTraitCollection.h>
+#import <AsyncDisplayKit/ASAsciiArtBoxCreator.h>
 
 @class ASLayout;
 @class ASLayoutSpec;
@@ -35,16 +43,6 @@ typedef NS_ENUM(NSUInteger, ASLayoutElementType) {
   ASLayoutElementTypeDisplayNode
 };
 
-ASDISPLAYNODE_EXTERN_C_BEGIN
-
-/**
- This function will walk the layout element hierarchy. It does run the block on the node provided
- directly to the function call.
- */
-extern void ASLayoutElementPerformBlockOnEveryElement(id<ASLayoutElement> root, void(^block)(id<ASLayoutElement> element));
-
-ASDISPLAYNODE_EXTERN_C_END
-
 #pragma mark - ASLayoutElement
 
 /**
@@ -63,19 +61,19 @@ ASDISPLAYNODE_EXTERN_C_END
  * access to the options via convenience properties. If you are creating custom layout spec, then you can
  * extend the backing layout options class to accommodate any new layout options.
  */
-@protocol ASLayoutElement <ASLayoutElementExtensibility, ASLayoutElementFinalLayoutElement, ASTraitEnvironment>
+@protocol ASLayoutElement <ASLayoutElementExtensibility, ASTraitEnvironment, ASLayoutElementAsciiArtProtocol>
 
 #pragma mark - Getter
 
 /**
  * @abstract Returns type of layoutElement
  */
-@property (nonatomic, assign, readonly) ASLayoutElementType layoutElementType;
+@property (nonatomic, readonly) ASLayoutElementType layoutElementType;
 
 /**
  * @abstract A size constraint that should apply to this ASLayoutElement.
  */
-@property (nonatomic, assign, readonly) ASLayoutElementStyle *style;
+@property (nonatomic, readonly) ASLayoutElementStyle *style;
 
 /**
  * @abstract Returns all children of an object which class conforms to the ASLayoutElement protocol
@@ -147,22 +145,7 @@ ASDISPLAYNODE_EXTERN_C_END
                      restrictedToSize:(ASLayoutElementSize)size
                  relativeToParentSize:(CGSize)parentSize;
 
-
-#pragma mark - Deprecated
-
-#define ASLayoutable ASLayoutElement
-
-/**
- * @abstract Calculate a layout based on given size range.
- *
- * @param constrainedSize The minimum and maximum sizes the receiver should fit in.
- *
- * @return An ASLayout instance defining the layout of the receiver and its children.
- *
- * @deprecated Deprecated in version 2.0: Use layoutThatFits: or layoutThatFits:parentSize: if used in
- * ASLayoutSpec subclasses
- */
-- (nonnull ASLayout *)measureWithSizeRange:(ASSizeRange)constrainedSize ASDISPLAYNODE_DEPRECATED_MSG("Use layoutThatFits: instead.");
+- (BOOL)implementsLayoutMethod;
 
 @end
 
@@ -191,7 +174,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
 - (void)style:(__kindof ASLayoutElementStyle *)style propertyDidChange:(NSString *)propertyName;
 @end
 
-@interface ASLayoutElementStyle : NSObject <ASStackLayoutElement, ASAbsoluteLayoutElement, ASLayoutElementExtensibility>
+@interface ASLayoutElementStyle : NSObject <ASStackLayoutElement, ASAbsoluteLayoutElement, ASLayoutElementExtensibility, NSLocking>
 
 /**
  * @abstract Initializes the layoutElement style with a specified delegate
@@ -209,18 +192,18 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
 #pragma mark - Sizing
 
 /**
- * @abstract The width property specifies the height of the content area of an ASLayoutElement.
+ * @abstract The width property specifies the width of the content area of an ASLayoutElement.
  * The minWidth and maxWidth properties override width.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension width;
+@property (nonatomic) ASDimension width;
 
 /**
  * @abstract The height property specifies the height of the content area of an ASLayoutElement
  * The minHeight and maxHeight properties override height.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension height;
+@property (nonatomic) ASDimension height;
 
 /**
  * @abstract The minHeight property is used to set the minimum height of a given element. It prevents the used value
@@ -228,7 +211,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * The value of minHeight overrides both maxHeight and height.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension minHeight;
+@property (nonatomic) ASDimension minHeight;
 
 /**
  * @abstract The maxHeight property is used to set the maximum height of an element. It prevents the used value of the
@@ -236,7 +219,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * The value of maxHeight overrides height, but minHeight overrides maxHeight.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension maxHeight;
+@property (nonatomic) ASDimension maxHeight;
 
 /**
  * @abstract The minWidth property is used to set the minimum width of a given element. It prevents the used value of
@@ -244,7 +227,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * The value of minWidth overrides both maxWidth and width.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension minWidth;
+@property (nonatomic) ASDimension minWidth;
 
 /**
  * @abstract The maxWidth property is used to set the maximum width of a given element. It prevents the used value of
@@ -252,7 +235,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * The value of maxWidth overrides width, but minWidth overrides maxWidth.
  * Defaults to ASDimensionAuto
  */
-@property (nonatomic, assign, readwrite) ASDimension maxWidth;
+@property (nonatomic) ASDimension maxWidth;
 
 #pragma mark - ASLayoutElementStyleSizeHelpers
 
@@ -268,7 +251,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  *
  * @warning Calling the getter when the size's width or height are relative will cause an assert.
  */
-@property (nonatomic, assign) CGSize preferredSize;
+@property (nonatomic) CGSize preferredSize;
 
  /**
  * @abstract An optional property that provides a minimum size bound for a layout element. If provided, this restriction will 
@@ -279,7 +262,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * element in a full screen container, this would result in a width of 160 points on an iPhone screen. However, 
  * since 160 pts is lower than the minimum width of 200 pts, the minimum width would be used.
  */
-@property (nonatomic, assign) CGSize minSize;
+@property (nonatomic) CGSize minSize;
 - (CGSize)minSize UNAVAILABLE_ATTRIBUTE;
 
 /**
@@ -291,7 +274,7 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * element in a full screen container, this would result in a width of 160 points on an iPhone screen. However, 
  * since 160 pts is higher than the maximum width of 120 pts, the maximum width would be used.
  */
-@property (nonatomic, assign) CGSize maxSize;
+@property (nonatomic) CGSize maxSize;
 - (CGSize)maxSize UNAVAILABLE_ATTRIBUTE;
 
 /**
@@ -301,21 +284,21 @@ extern NSString * const ASLayoutElementStyleLayoutPositionProperty;
  * will be enforced. If this optional value is not provided, the layout element’s size will default to its intrinsic content size 
  * provided calculateSizeThatFits:
  */
-@property (nonatomic, assign, readwrite) ASLayoutSize preferredLayoutSize;
+@property (nonatomic) ASLayoutSize preferredLayoutSize;
 
 /**
  * @abstract An optional property that provides a minimum RELATIVE size bound for a layout element. If provided, this
  * restriction will always be enforced. If a parent layout element’s minimum relative size is smaller than its child’s minimum
  * relative size, the child’s minimum relative size will be enforced and its size will extend out of the layout spec’s.
  */
-@property (nonatomic, assign, readwrite) ASLayoutSize minLayoutSize;
+@property (nonatomic) ASLayoutSize minLayoutSize;
 
 /**
  * @abstract An optional property that provides a maximum RELATIVE size bound for a layout element. If provided, this
  * restriction will always be enforced. If a parent layout element’s maximum relative size is smaller than its child’s maximum
  * relative size, the child’s maximum relative size will be enforced and its size will extend out of the layout spec’s.
  */
-@property (nonatomic, assign, readwrite) ASLayoutSize maxLayoutSize;
+@property (nonatomic) ASLayoutSize maxLayoutSize;
 
 @end
 

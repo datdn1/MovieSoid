@@ -72,12 +72,12 @@ class ReviewsInfo: Mappable, DetailInfoSortProtocol {
     }
 }
 
-extension ReviewsInfo: IGListDiffable {
+extension ReviewsInfo: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(detailIndex)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? ReviewsInfo else { return false }
         return self.detailIndex == object.detailIndex

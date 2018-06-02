@@ -25,19 +25,19 @@ class VideosDetailInfoCell: HorizalDetailCell {
     }
 }
 
-extension VideosDetailInfoCell: IGListAdapterDataSource {
-    func listAdapter(_ listAdapter: IGListAdapter, sectionControllerFor object: Any) -> IGListSectionController {
+extension VideosDetailInfoCell: ListAdapterDataSource {
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
         return VideoSection(heightCollectionNode: self.heightForNode)
     }
 
-    func objects(for listAdapter: IGListAdapter) -> [IGListDiffable] {
-        return [self.model as IGListDiffable]
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return [self.model as ListDiffable]
     }
 
-    func emptyView(for listAdapter: IGListAdapter) -> UIView? { return nil }
+    func emptyView(for listAdapter: ListAdapter) -> UIView? { return nil }
 }
 
-class VideoSection: IGListSectionController, IGListSectionType, ASSectionController {
+class VideoSection: ListSectionController, ASSectionController {
 
     let heightCollectionNode: CGFloat
     init(heightCollectionNode: CGFloat) {
@@ -53,27 +53,27 @@ class VideoSection: IGListSectionController, IGListSectionType, ASSectionControl
         return { return VideoCell(model: self.videos!.videos[index], delegate: self, height: self.heightCollectionNode) }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         guard let videosInfo = self.videos, let videos = videosInfo.videos else { return 0 }
         return videos.count
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.videos = object as? VideosInfo
     }
 
-    func didSelectItem(at index: Int) {
+    override func didSelectItem(at index: Int) {
         guard let controller = self.viewController as? DetailMovieController, let video = self.videos?.videos[index] else { return }
         let playerController = PlayVideoController(nibName: "PlayVideoController", bundle: nil)
         playerController.videoId = video.key
         controller.navigationController?.pushViewController(playerController, animated: true)
     }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

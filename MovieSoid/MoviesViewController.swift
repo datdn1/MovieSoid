@@ -70,7 +70,9 @@ class MoviesViewController: ASViewController<ASCollectionNode> {
                         }
                     }
                 }
-                catch { }
+                catch {
+                    print("error")
+                }
             case let .failure(error):
                 let error = error as CustomStringConvertible
                 print(error.description)

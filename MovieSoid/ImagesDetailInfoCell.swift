@@ -25,19 +25,19 @@ class ImagesDetailInfoCell: HorizalDetailCell {
     }
 }
 
-extension ImagesDetailInfoCell: IGListAdapterDataSource {
-    func listAdapter(_ listAdapter: IGListAdapter, sectionControllerFor object: Any) -> IGListSectionController {
+extension ImagesDetailInfoCell: ListAdapterDataSource {
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
         return ImageSection(heightCollectionNode: self.heightForNode)
     }
 
-    func objects(for listAdapter: IGListAdapter) -> [IGListDiffable] {
-        return [self.model as IGListDiffable]
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return [self.model as! ListDiffable]
     }
 
-    func emptyView(for listAdapter: IGListAdapter) -> UIView? { return nil }
+    func emptyView(for listAdapter: ListAdapter) -> UIView? { return nil }
 }
 
-class ImageSection: IGListSectionController, IGListSectionType, ASSectionController {
+class ImageSection: ListSectionController, ASSectionController {
 
     let heightCollectionNode: CGFloat
     init(heightCollectionNode: CGFloat) {
@@ -53,22 +53,22 @@ class ImageSection: IGListSectionController, IGListSectionType, ASSectionControl
         return { return ImageCell(model: self.images!.posters[index], height: self.heightCollectionNode) }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         guard let imagesInfo = self.images, let images = imagesInfo.posters else { return 0 }
         return images.count
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.images = object as? ImagesInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

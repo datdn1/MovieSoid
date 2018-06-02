@@ -51,12 +51,12 @@ class ImagesInfo: Mappable, DetailInfoSortProtocol {
     }
 }
 
-extension ImagesInfo: IGListDiffable {
+extension ImagesInfo: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(detailIndex)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? ImagesInfo else { return false }
         return self.detailIndex == object.detailIndex

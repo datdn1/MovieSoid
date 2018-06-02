@@ -1,13 +1,18 @@
 //
 //  ASLayoutTransition.h
-//  AsyncDisplayKit
-//
-//  Created by Huy Nguyen on 3/8/16.
+//  Texture
 //
 //  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the root directory of this source tree. An additional grant
-//  of patent rights can be found in the PATENTS file in the same directory.
+//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
+//  grant of patent rights can be found in the PATENTS file in the same directory.
+//
+//  Modifications to this file made after 4/13/2017 are: Copyright (c) 2017-present,
+//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 
 #import <AsyncDisplayKit/ASDimension.h>
@@ -25,14 +30,14 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - ASLayoutElementTransition
 
 /**
- * Extend the layout element protocol to check if a the element can layout asynchronously.
+ * Objects conform to this project returns if it's possible to layout asynchronous
  */
-@protocol ASLayoutElementTransition <ASLayoutElement>
+@protocol ASLayoutElementTransition <NSObject>
 
 /**
  * @abstract Returns if the layoutElement can be used to layout in an asynchronous way on a background thread.
  */
-@property (nonatomic, assign, readonly) BOOL canLayoutAsynchronous;
+@property (nonatomic, readonly) BOOL canLayoutAsynchronous;
 
 @end
 
@@ -50,22 +55,22 @@ AS_SUBCLASSING_RESTRICTED
 /**
  * Node to apply layout transition on
  */
-@property (nonatomic, readonly, weak) ASDisplayNode *node;
+@property (nonatomic, weak, readonly) ASDisplayNode *node;
 
 /**
  * Previous layout to transition from
  */
-@property (nonatomic, readonly, assign) std::shared_ptr<ASDisplayNodeLayout> previousLayout;
+@property (nonatomic, readonly) std::shared_ptr<ASDisplayNodeLayout> previousLayout;
 
 /**
  * Pending layout to transition to
  */
-@property (nonatomic, readonly, assign) std::shared_ptr<ASDisplayNodeLayout> pendingLayout;
+@property (nonatomic, readonly) std::shared_ptr<ASDisplayNodeLayout> pendingLayout;
 
 /**
  * Returns if the layout transition needs to happen synchronously
  */
-@property (nonatomic, readonly, assign) BOOL isSynchronous;
+@property (nonatomic, readonly) BOOL isSynchronous;
 
 /**
  * Returns a newly initialized layout transition

@@ -10,7 +10,7 @@ import Foundation
 import AsyncDisplayKit
 import IGListKit
 
-class SimilarInfoSection: IGListSectionController, IGListSectionType, ASSectionController {
+class SimilarInfoSection: ListSectionController, ASSectionController {
     override init() {
         super.init()
         self.inset = UIEdgeInsetsMake(10, 0, 20, 0)
@@ -28,21 +28,21 @@ class SimilarInfoSection: IGListSectionController, IGListSectionType, ASSectionC
         }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         return 1
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.object = object as? MoviesInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

@@ -48,8 +48,8 @@ class HorizalDetailCell: ASCellNode {
         self.adapter.setASDKCollectionNode(self.castCollectionNode)
     }
 
-    lazy var adapter: IGListAdapter = {
-        return IGListAdapter(updater: IGListAdapterUpdater(), viewController: self.controller, workingRangeSize: 0)
+    lazy var adapter: ListAdapter = {
+        return ListAdapter(updater: ListAdapterUpdater(), viewController: self.controller, workingRangeSize: 0)
     }()
 
     init(title: String, height: CGFloat, controller: UIViewController?) {

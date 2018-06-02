@@ -14,6 +14,7 @@
 #import <Cocoa/Cocoa.h>
 #endif
 
+@protocol PINRequestRetryStrategy;
 #import "PINRemoteImageMacros.h"
 
 #import "PINRemoteImageManagerResult.h"
@@ -121,6 +122,16 @@ typedef void(^PINRemoteImageManagerAuthenticationChallengeCompletionHandler)(NSU
  */
 typedef void(^PINRemoteImageManagerAuthenticationChallenge)(NSURLSessionTask * __nullable task, NSURLAuthenticationChallenge * __nonnull challenge, PINRemoteImageManagerAuthenticationChallengeCompletionHandler __nullable aHandler);
 
+
+/**
+ Request configuration handler. Used to modify a network request before it is executed.
+ Useful for adding custom, per-request headers.
+ 
+ @param request The request about to be executed
+ */
+typedef NSURLRequest * _Nonnull(^PINRemoteImageManagerRequestConfigurationHandler)(NSURLRequest * __nonnull request);
+
+
 /**
  Handler called for many PINRemoteImage tasks providing the progress of the download.
  
@@ -153,12 +164,12 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 /**
  Create and return a PINRemoteImageManager with the specified configuration and alternative representation delegate. If configuration is nil, [NSURLSessionConfiguration defaultConfiguration] is used. Specify a custom configuration if you need to configure timeout values, cookie policies, additional HTTP headers, etc. If alternativeRepresentationProvider is nil, the default is used (and supports FLAnimatedImage).
  @param configuration The configuration used to create the PINRemoteImageManager.
- @param alternativeRepresentationProvider a delegate which conforms to the PINRemoteImageManagerAlternateRepresentationProvider protocol. Provide a delegate if you want to have non image results. @see PINRemoteImageManagerAlternateRepresentationProvider for an example.
+ @param alternateRepDelegate a delegate which conforms to the PINRemoteImageManagerAlternateRepresentationProvider protocol. Provide a delegate if you want to have non image results. @see PINRemoteImageManagerAlternateRepresentationProvider for an example.
  @param imageCache  Optional delegate which conforms to the PINRemoteImageCaching protocol. Provide a delegate if you want to control image caching. By default, image manager will use most appropriate implementation available (based on PINCache or NSCache, depending on subspec)@see PINRemoteImageBasicCache for an example.
  @return A PINRemoteImageManager with the specified configuration.
  */
 - (nonnull instancetype)initWithSessionConfiguration:(nullable NSURLSessionConfiguration *)configuration
-                   alternativeRepresentationProvider:(nullable id <PINRemoteImageManagerAlternateRepresentationProvider>)alternativeRepresentationProvider
+                   alternativeRepresentationProvider:(nullable id <PINRemoteImageManagerAlternateRepresentationProvider>)alternateRepDelegate
                                           imageCache:(nullable id<PINRemoteImageCaching>)imageCache NS_DESIGNATED_INITIALIZER;
 
 
@@ -187,10 +198,19 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 /**
  * Sets a custom header to be included in every request. Headers set from this method will override any header from NSURLSessionConfiguration.
  *
+ * @deprecated Use NSURLSessionConfiguration.HTTPAdditionalHeaders instead
  * @param value A value for the header. Pass in nil to remove a previously set value.
  * @param header A string field for header.
+
  */
-- (void)setValue:(nullable NSString *)value forHTTPHeaderField:(nullable NSString *)header;
+- (void)setValue:(nullable NSString *)value forHTTPHeaderField:(nullable NSString *)header __attribute__((deprecated));
+
+/**
+ Sets the Request Configuration Block.
+ 
+ @param configurationBlock A PINRemoteImageManagerRequestConfigurationHandler block.
+ */
+- (void)setRequestConfiguration:(nullable PINRemoteImageManagerRequestConfigurationHandler)configurationBlock;
 
 /**
  Set the Authentication Challenge Block.
@@ -240,7 +260,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 /**
  Set the maximum number of concurrent downloads.
  
- @param maxNumberOfConcurrentDownloads The maximum number of concurrent downloads. Defaults to 10.
+ @param maxNumberOfConcurrentDownloads The maximum number of concurrent downloads. Defaults to 10, maximum 65535.
  @param completion Completion to be called once maxNumberOfConcurrentDownloads is set.
  */
 - (void)setMaxNumberOfConcurrentDownloads:(NSInteger)maxNumberOfConcurrentDownloads
@@ -421,7 +441,7 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
  
  Unless setShouldUpgradeLowQualityImages is set to YES, this method checks the cache for all URLs and returns the highest quality version stored. It is possible though unlikely for a cached image to not be returned if it is still being cached while a call is made to this method and if network conditions have changed. See source for more details.
  
- @param urls An array of NSURLs of increasing size.
+ @param urls An array of NSURLs of increasing cost to download.
  @param options PINRemoteImageManagerDownloadOptions options with which to fetch the image.
  @param progressImage PINRemoteImageManagerImageCompletion block which will be called to update progress of the image download.
  @param completion PINRemoteImageManagerImageCompletion block to call when image has been fetched from the cache or downloaded.
@@ -431,6 +451,25 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
 - (nullable NSUUID *)downloadImageWithURLs:(nonnull NSArray <NSURL *> *)urls
                                    options:(PINRemoteImageManagerDownloadOptions)options
                              progressImage:(nullable PINRemoteImageManagerImageCompletion)progressImage
+                                completion:(nullable PINRemoteImageManagerImageCompletion)completion;
+
+/**
+ Download or retrieve from cache one of the images found at the urls in the passed in array based on current network performance. URLs should be sorted from lowest quality image URL to highest. All completions are called on an arbitrary callback queue unless called on the main thread and the result is in the memory cache (this is an optimization to allow synchronous results for the UI when an object is cached in memory).
+ 
+ Unless setShouldUpgradeLowQualityImages is set to YES, this method checks the cache for all URLs and returns the highest quality version stored. It is possible though unlikely for a cached image to not be returned if it is still being cached while a call is made to this method and if network conditions have changed. See source for more details.
+ 
+ @param urls An array of NSURLs of increasing cost to download.
+ @param options PINRemoteImageManagerDownloadOptions options with which to fetch the image.
+ @param progressImage PINRemoteImageManagerImageCompletion block which will be called to update progress of the image download.
+ @param progressDownload PINRemoteImageManagerDownloadProgress block which will be called to update progress in bytes of the image download. NOTE: For performance reasons, this block is not called on the main thread every time, if you need to update your UI ensure that you dispatch to the main thread first.
+ @param completion PINRemoteImageManagerImageCompletion block to call when image has been fetched from the cache or downloaded.
+ 
+ @return An NSUUID which uniquely identifies this request. To be used for canceling requests and verifying that the callback is for the request you expect (see categories for example).
+ */
+- (nullable NSUUID *)downloadImageWithURLs:(nonnull NSArray <NSURL *> *)urls
+                                   options:(PINRemoteImageManagerDownloadOptions)options
+                             progressImage:(nullable PINRemoteImageManagerImageCompletion)progressImage
+                          progressDownload:(nullable PINRemoteImageManagerProgressDownload)progressDownload
                                 completion:(nullable PINRemoteImageManagerImageCompletion)completion;
 
 
@@ -545,5 +584,15 @@ typedef void(^PINRemoteImageManagerProgressDownload)(int64_t completedBytes, int
  * @param UUID NSUUID of the task to set the priority on.
  */
 - (void)setProgressImageCallback:(nullable PINRemoteImageManagerImageCompletion)progressImageCallback ofTaskWithUUID:(nonnull NSUUID *)UUID;
+
+/**
+ Set retry strategy for all requests
+ 
+ @param retryStrategyCreationBlock a block which should create new instance of PINRequestRetryStrategy when called.
+ */
+- (void)setRetryStrategyCreationBlock:(_Nonnull id<PINRequestRetryStrategy> (^_Nonnull)(void))retryStrategyCreationBlock;
+
+@property (nonatomic, readonly) _Nonnull id<PINRequestRetryStrategy> (^_Nonnull retryStrategyCreationBlock)(void);
+
 
 @end

@@ -9,7 +9,7 @@
 import Foundation
 import Moya
 
-let apiKey = "c93f537e0168ecfec177afb8ced7ec16"
+let apiKey = "45b7f99484f7012bd93bbf56b271faaf"
 
 // MARK: - Provider setup
 private func JSONResponseDataFormatter(_ data: Data) -> Data {
@@ -44,6 +44,10 @@ public enum MoviesAPI {
 
 // MARK: - Configure network client
 extension MoviesAPI: TargetType {
+    public var headers: [String : String]? {
+        return ["Accept": "application/json", "Content-Type": "application/json"]
+    }
+    
 
     public var baseURL: URL { return URL(string: Constants.URL.EndpointBaseURL)! }
 
@@ -92,7 +96,7 @@ extension MoviesAPI: TargetType {
     }
 
     public var task: Task {
-        return .request
+        return .requestPlain
     }
 
     public var sampleData: Data {

@@ -1,11 +1,18 @@
 //
 //  ASImageNode.h
-//  AsyncDisplayKit
+//  Texture
 //
 //  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the root directory of this source tree. An additional grant
-//  of patent rights can be found in the PATENTS file in the same directory.
+//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
+//  grant of patent rights can be found in the PATENTS file in the same directory.
+//
+//  Modifications to this file made after 4/13/2017 are: Copyright (c) 2017-present,
+//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 
 #import <UIKit/UIKit.h>
@@ -38,12 +45,12 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * the layer's contentsCenter property.  Non-stretchable images work too, of
  * course.
  */
-@property (nullable, nonatomic, strong) UIImage *image;
+@property (nullable) UIImage *image;
 
 /**
  @abstract The placeholder color.
  */
-@property (nullable, nonatomic, strong) UIColor *placeholderColor;
+@property (nullable, copy) UIColor *placeholderColor;
 
 /**
  * @abstract Indicates whether efficient cropping of the receiver is enabled.
@@ -51,7 +58,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * @discussion Defaults to YES. See -setCropEnabled:recropImmediately:inBounds: for more
  * information.
  */
-@property (nonatomic, assign, getter=isCropEnabled) BOOL cropEnabled;
+@property (getter=isCropEnabled) BOOL cropEnabled;
 
 /**
  * @abstract Indicates that efficient downsizing of backing store should *not* be enabled.
@@ -59,7 +66,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * @discussion Defaults to NO. @see ASCroppedImageBackingSizeAndDrawRectInBounds for more
  * information.
  */
-@property (nonatomic, assign) BOOL forceUpscaling;
+@property BOOL forceUpscaling;
 
 /**
  * @abstract Forces image to be rendered at forcedSize.
@@ -67,7 +74,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * Setting forcedSize to non-CGSizeZero will force the backing of the layer contents to 
  * be forcedSize (automatically adjusted for contentsSize).
  */
-@property (nonatomic, assign) CGSize forcedSize;
+@property CGSize forcedSize;
 
 /**
  * @abstract Enables or disables efficient cropping.
@@ -98,7 +105,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * dimensions, and only the cropRect's origin will be used for positioning. The
  * default value of this property is CGRectMake(0.5, 0.5, 0.0, 0.0).
  */
-@property (nonatomic, readwrite, assign) CGRect cropRect;
+@property CGRect cropRect;
 
 /**
  * @abstract An optional block which can perform drawing operations on image
@@ -107,7 +114,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * @discussion Can be used to add image effects (such as rounding, adding
  * borders, or other pattern overlays) without extraneous display calls.
  */
-@property (nullable, nonatomic, readwrite, copy) asimagenode_modification_block_t imageModificationBlock;
+@property (nullable) asimagenode_modification_block_t imageModificationBlock;
 
 /**
  * @abstract Marks the receiver as needing display and performs a block after
@@ -129,10 +136,15 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * is the default focus appearance.
  * Exposed here so the category methods can set it.
  */
-@property (nonatomic, assign) BOOL isDefaultFocusAppearance;
+@property BOOL isDefaultFocusAppearance;
 #endif
 
 @end
+
+#if TARGET_OS_TV
+@interface ASImageNode (tvOS)
+@end
+#endif
 
 @interface ASImageNode (AnimatedImage)
 
@@ -141,8 +153,11 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  *
  * @discussion Set this to an object which conforms to ASAnimatedImageProtocol
  * to have the ASImageNode playback an animated image.
+ * @warning this method should not be overridden, it may not always be called as
+ * another method is used internally. If you need to know when the animatedImage
+ * is set, override @c animatedImageSet:previousAnimatedImage:
  */
-@property (nullable, nonatomic, strong) id <ASAnimatedImageProtocol> animatedImage;
+@property (nullable) id <ASAnimatedImageProtocol> animatedImage;
 
 /**
  * @abstract Pause the playback of an animated image.
@@ -150,7 +165,7 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * @discussion Set to YES to pause playback of an animated image and NO to resume
  * playback.
  */
-@property (nonatomic, assign) BOOL animatedImagePaused;
+@property BOOL animatedImagePaused;
 
 /**
  * @abstract The runloop mode used to animate the image.
@@ -159,7 +174,16 @@ typedef UIImage * _Nullable (^asimagenode_modification_block_t)(UIImage *image);
  * Setting NSDefaultRunLoopMode will cause animation to pause while scrolling (if the ASImageNode is
  * in a scroll view), which may improve scroll performance in some use cases.
  */
-@property (nonatomic, strong) NSString *animatedImageRunLoopMode;
+@property (copy) NSString *animatedImageRunLoopMode;
+
+/**
+ * @abstract Method called when animated image has been set
+ *
+ * @discussion This method is for subclasses to override so they can know if an animated image
+ * has been set on the node.
+ * @warning this method is called with the node's lock held.
+ */
+- (void)animatedImageSet:(id <ASAnimatedImageProtocol>)newAnimatedImage previousAnimatedImage:(id <ASAnimatedImageProtocol>)previousAnimatedImage;
 
 @end
 

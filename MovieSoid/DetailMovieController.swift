@@ -18,8 +18,8 @@ class DetailMovieController: ASViewController<ASCollectionNode> {
 
     var detailInfo: [DetailInfoSortProtocol] = []
 
-    lazy var adapter: IGListAdapter = {
-        return IGListAdapter(updater: IGListAdapterUpdater(), viewController: self, workingRangeSize: 0)
+    lazy var adapter: ListAdapter = {
+        return ListAdapter(updater: ListAdapterUpdater(), viewController: self, workingRangeSize: 0)
     }()
 
     init(movie: Movies) {
@@ -146,8 +146,8 @@ class DetailMovieController: ASViewController<ASCollectionNode> {
 }
 
 
-extension DetailMovieController: IGListAdapterDataSource {
-    func listAdapter(_ listAdapter: IGListAdapter, sectionControllerFor object: Any) -> IGListSectionController {
+extension DetailMovieController: ListAdapterDataSource {
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
         if object is Movies {
             return MovieInfoSection()
         }
@@ -168,11 +168,11 @@ extension DetailMovieController: IGListAdapterDataSource {
         }
     }
 
-    func objects(for listAdapter: IGListAdapter) -> [IGListDiffable] {
-        return detailInfo as! [IGListDiffable]
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return detailInfo as! [ListDiffable]
     }
 
-    func emptyView(for listAdapter: IGListAdapter) -> UIView? { return nil }
+    func emptyView(for listAdapter: ListAdapter) -> UIView? { return nil }
 }
 
 

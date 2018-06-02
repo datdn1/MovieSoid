@@ -62,19 +62,19 @@ class CastDetailInfoCell: HorizalDetailCell {
     }
 }
 
-extension CastDetailInfoCell: IGListAdapterDataSource {
-    func listAdapter(_ listAdapter: IGListAdapter, sectionControllerFor object: Any) -> IGListSectionController {
+extension CastDetailInfoCell: ListAdapterDataSource {
+    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
         return CastSection(heightCollectionNode: self.heightForNode)
     }
 
-    func objects(for listAdapter: IGListAdapter) -> [IGListDiffable] {
-        return [self.model as IGListDiffable]
+    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
+        return [self.model as ListDiffable]
     }
 
-    func emptyView(for listAdapter: IGListAdapter) -> UIView? { return nil }
+    func emptyView(for listAdapter: ListAdapter) -> UIView? { return nil }
 }
 
-class CastSection: IGListSectionController, IGListSectionType, ASSectionController {
+class CastSection: ListSectionController, ASSectionController {
 
     let heightCollectionNode: CGFloat
     init(heightCollectionNode: CGFloat) {
@@ -89,22 +89,22 @@ class CastSection: IGListSectionController, IGListSectionType, ASSectionControll
         return { return CastInfoCell(model: self.casts!.casts[index], height: self.heightCollectionNode) }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         guard let castsInfo = self.casts, let casts = castsInfo.casts else { return 0 }
         return casts.count
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.casts = object as? CastInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }

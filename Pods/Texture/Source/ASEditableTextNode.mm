@@ -1,11 +1,18 @@
 //
 //  ASEditableTextNode.mm
-//  AsyncDisplayKit
+//  Texture
 //
 //  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the root directory of this source tree. An additional grant
-//  of patent rights can be found in the PATENTS file in the same directory.
+//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
+//  grant of patent rights can be found in the PATENTS file in the same directory.
+//
+//  Modifications to this file made after 4/13/2017 are: Copyright (c) 2017-present,
+//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 
 #import <AsyncDisplayKit/ASEditableTextNode.h>
@@ -24,14 +31,14 @@
 **/
 @interface _ASTextInputTraitsPendingState : NSObject
 
-@property (nonatomic, readwrite, assign) UITextAutocapitalizationType autocapitalizationType;
-@property (nonatomic, readwrite, assign) UITextAutocorrectionType autocorrectionType;
-@property (nonatomic, readwrite, assign) UITextSpellCheckingType spellCheckingType;
-@property (nonatomic, readwrite, assign) UIKeyboardAppearance keyboardAppearance;
-@property (nonatomic, readwrite, assign) UIKeyboardType keyboardType;
-@property (nonatomic, readwrite, assign) UIReturnKeyType returnKeyType;
-@property (nonatomic, readwrite, assign) BOOL enablesReturnKeyAutomatically;
-@property (nonatomic, readwrite, assign, getter=isSecureTextEntry) BOOL secureTextEntry;
+@property UITextAutocapitalizationType autocapitalizationType;
+@property UITextAutocorrectionType autocorrectionType;
+@property UITextSpellCheckingType spellCheckingType;
+@property UIKeyboardAppearance keyboardAppearance;
+@property UIKeyboardType keyboardType;
+@property UIReturnKeyType returnKeyType;
+@property BOOL enablesReturnKeyAutomatically;
+@property (getter=isSecureTextEntry) BOOL secureTextEntry;
 
 @end
 
@@ -68,7 +75,7 @@
 
  See issue: https://github.com/facebook/AsyncDisplayKit/issues/1063
  */
-@interface ASPanningOverriddenUITextView : UITextView
+@interface ASPanningOverriddenUITextView : ASTextKitComponentsTextView
 {
   BOOL _shouldBlockPanGesture;
 }
@@ -135,7 +142,7 @@
   NSRange _previousSelectedRange;
 }
 
-@property (nonatomic, strong, readonly) _ASTextInputTraitsPendingState *textInputTraits;
+@property (nonatomic, readonly) _ASTextInputTraitsPendingState *textInputTraits;
 
 @end
 
@@ -168,13 +175,6 @@
   _placeholderTextKitComponents.layoutManager.delegate = self;
   
   return self;
-}
-
-- (void)dealloc
-{
-  _textKitComponents.textView.delegate = nil;
-  _textKitComponents.layoutManager.delegate = nil;
-  _placeholderTextKitComponents.layoutManager.delegate = nil;
 }
 
 #pragma mark - ASDisplayNode Overrides
@@ -215,7 +215,7 @@
   ASDN::MutexLocker l(_textKitLock);
 
   // Create and configure the placeholder text view.
-  _placeholderTextKitComponents.textView = [[UITextView alloc] initWithFrame:CGRectZero textContainer:_placeholderTextKitComponents.textContainer];
+  _placeholderTextKitComponents.textView = [[ASTextKitComponentsTextView alloc] initWithFrame:CGRectZero textContainer:_placeholderTextKitComponents.textContainer];
   _placeholderTextKitComponents.textView.userInteractionEnabled = NO;
   _placeholderTextKitComponents.textView.accessibilityElementsHidden = YES;
   configureTextView(_placeholderTextKitComponents.textView);
@@ -692,6 +692,12 @@
 }
 
 #pragma mark - UITextView Delegate
+- (BOOL)textViewShouldBeginEditing:(UITextView *)textView
+{
+  // Delegateify.
+  return [self _delegateShouldBeginEditing];
+}
+
 - (void)textViewDidBeginEditing:(UITextView *)textView
 {
   // Delegateify.
@@ -786,6 +792,14 @@
 }
 
 #pragma mark -
+- (BOOL)_delegateShouldBeginEditing
+{
+  if ([_delegate respondsToSelector:@selector(editableTextNodeShouldBeginEditing:)]) {
+    return [_delegate editableTextNodeShouldBeginEditing:self];
+  }
+  return YES;
+}
+
 - (void)_delegateDidBeginEditing
 {
   if ([_delegate respondsToSelector:@selector(editableTextNodeDidBeginEditing:)])

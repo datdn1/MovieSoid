@@ -38,12 +38,12 @@ class MoviesInfo: Mappable, DetailInfoSortProtocol {
     }
 }
 
-extension MoviesInfo: IGListDiffable {
+extension MoviesInfo: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(self.detailIndex)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? MoviesInfo else { return false }
         return self.detailIndex == object.detailIndex
@@ -207,12 +207,12 @@ extension Movies {
     }
 }
 
-extension Movies: IGListDiffable {
+extension Movies: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(self.id)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? Movies else { return false }
         return self.id == object.id

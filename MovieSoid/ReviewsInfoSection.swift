@@ -11,7 +11,7 @@ import AsyncDisplayKit
 import IGListKit
 
 
-class ReviewsInfoSection: IGListSectionController, IGListSectionType, ASSectionController {
+class ReviewsInfoSection: ListSectionController, ASSectionController {
     override init() {
         super.init()
         self.inset = UIEdgeInsetsMake(10, 0, 20, 0)
@@ -29,29 +29,30 @@ class ReviewsInfoSection: IGListSectionController, IGListSectionType, ASSectionC
         return { ReviewsCell(model: reviews[index-1], hiddenSeperator: hiddenSeperator, delegate: self, index: index - 1) }
     }
 
-    func numberOfItems() -> Int {
+    override func numberOfItems() -> Int {
         guard let reviews = self.object?.reviews else { return 0 }
         return reviews.count > 0 ? reviews.count + 1 : 0
     }
 
-    func didUpdate(to object: Any) {
+    override func didUpdate(to object: Any) {
         self.object = object as? ReviewsInfo
     }
 
-    func didSelectItem(at index: Int) { }
+    override func didSelectItem(at index: Int) { }
 
-    func sizeForItem(at index: Int) -> CGSize {
+    override func sizeForItem(at index: Int) -> CGSize {
         return ASIGListSectionControllerMethods.sizeForItem(at: index)
     }
 
-    func cellForItem(at index: Int) -> UICollectionViewCell {
+    override func cellForItem(at index: Int) -> UICollectionViewCell {
         return ASIGListSectionControllerMethods.cellForItem(at: index, sectionController: self)
     }
 }
 
 extension ReviewsInfoSection: ReviewsCellDelegate {
     func didTapSeeMore(at index: Int) {
-        collectionContext?.reload(in: self, at: IndexSet(integer: index + 1))
+//        ASSectionContext.
+//        ASSectionContext?.reload(in: self, at: IndexSet(integer: index + 1))
     }
 }
 

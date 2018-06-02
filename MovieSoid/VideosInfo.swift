@@ -49,12 +49,12 @@ class VideosInfo: Mappable, DetailInfoSortProtocol {
     }
 }
 
-extension VideosInfo: IGListDiffable {
+extension VideosInfo: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(detailIndex)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? VideosInfo else { return false }
         return self.detailIndex == object.detailIndex

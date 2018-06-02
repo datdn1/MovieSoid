@@ -1,14 +1,22 @@
 //
 //  ASControlNode.mm
-//  AsyncDisplayKit
+//  Texture
 //
 //  Copyright (c) 2014-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under the BSD-style license found in the
-//  LICENSE file in the root directory of this source tree. An additional grant
-//  of patent rights can be found in the PATENTS file in the same directory.
+//  LICENSE file in the /ASDK-Licenses directory of this source tree. An additional
+//  grant of patent rights can be found in the PATENTS file in the same directory.
+//
+//  Modifications to this file made after 4/13/2017 are: Copyright (c) 2017-present,
+//  Pinterest, Inc.  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 
 #import <AsyncDisplayKit/ASControlNode.h>
+#import <AsyncDisplayKit/ASControlNode+Private.h>
 #import <AsyncDisplayKit/ASControlNode+Subclasses.h>
 #import <AsyncDisplayKit/ASDisplayNode+Subclasses.h>
 #import <AsyncDisplayKit/ASImageNode.h>
@@ -30,8 +38,6 @@
 @interface ASControlNode ()
 {
 @private
-  ASDN::RecursiveMutex _controlLock;
-  
   // Control Attributes
   BOOL _enabled;
   BOOL _highlighted;
@@ -46,8 +52,8 @@
 }
 
 // Read-write overrides.
-@property (nonatomic, readwrite, assign, getter=isTracking) BOOL tracking;
-@property (nonatomic, readwrite, assign, getter=isTouchInside) BOOL touchInside;
+@property (getter=isTracking) BOOL tracking;
+@property (getter=isTouchInside) BOOL touchInside;
 
 /**
   @abstract Returns a key to be used in _controlEventDispatchTable that identifies the control event.
@@ -96,10 +102,12 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
 #if TARGET_OS_TV
 - (void)didLoad
 {
+  [super didLoad];
+  
   // On tvOS all controls, such as buttons, interact with the focus system even if they don't have a target set on them.
   // Here we add our own internal tap gesture to handle this behaviour.
   self.userInteractionEnabled = YES;
-  UITapGestureRecognizer *tapGestureRec = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(pressDown)];
+  UITapGestureRecognizer *tapGestureRec = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_pressDown)];
   tapGestureRec.allowedPressTypes = @[@(UIPressTypeSelect)];
   [self.view addGestureRecognizer:tapGestureRec];
 }
@@ -288,7 +296,7 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
   // ASControlNode cannot be layer backed if adding a target
   ASDisplayNodeAssert(!self.isLayerBacked, @"ASControlNode is layer backed, will never be able to call target in target:action: pair.");
   
-  ASDN::MutexLocker l(_controlLock);
+  ASLockScopeSelf();
 
   if (!_controlEventDispatchTable) {
     _controlEventDispatchTable = [[NSMutableDictionary alloc] initWithCapacity:kASControlNodeEventDispatchTableInitialCapacity]; // enough to handle common types without re-hashing the dictionary when adding entries.
@@ -342,7 +350,7 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
   NSParameterAssert(target);
   NSParameterAssert(controlEvent != 0 && controlEvent != ASControlNodeEventAllEvents);
 
-  ASDN::MutexLocker l(_controlLock);
+  ASLockScopeSelf();
   
   // Grab the event target action array for this event.
   NSMutableArray *eventTargetActionArray = _controlEventDispatchTable[_ASControlNodeEventKeyForControlEvent(controlEvent)];
@@ -364,7 +372,7 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
 
 - (NSSet *)allTargets
 {
-  ASDN::MutexLocker l(_controlLock);
+  ASLockScopeSelf();
   
   NSMutableSet *targets = [[NSMutableSet alloc] init];
 
@@ -383,7 +391,7 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
 {
   NSParameterAssert(controlEventMask != 0);
   
-  ASDN::MutexLocker l(_controlLock);
+  ASLockScopeSelf();
 
   // Enumerate the events in the mask, removing the target-action pair for each control event included in controlEventMask.
   _ASEnumerateControlEventsIncludedInMaskWithBlock(controlEventMask, ^
@@ -425,31 +433,31 @@ CGRect _ASControlNodeGetExpandedBounds(ASControlNode *controlNode);
   
   NSMutableArray *resolvedEventTargetActionArray = [[NSMutableArray<ASControlTargetAction *> alloc] init];
   
-  _controlLock.lock();
-
-  // Enumerate the events in the mask, invoking the target-action pairs for each.
-  _ASEnumerateControlEventsIncludedInMaskWithBlock(controlEvents, ^
-    (ASControlNodeEvent controlEvent)
-    {
-      // Iterate on each target action pair
-      for (ASControlTargetAction *targetAction in _controlEventDispatchTable[_ASControlNodeEventKeyForControlEvent(controlEvent)]) {
-        ASControlTargetAction *resolvedTargetAction = [[ASControlTargetAction alloc] init];
-        resolvedTargetAction.action = targetAction.action;
-        resolvedTargetAction.target = targetAction.target;
-        
-        // NSNull means that a nil target was set, so start at self and travel the responder chain
-        if (!resolvedTargetAction.target && targetAction.createdWithNoTarget) {
-          // if the target cannot perform the action, travel the responder chain to try to find something that does
-          resolvedTargetAction.target = [self.view targetForAction:resolvedTargetAction.action withSender:self];
+  {
+    ASLockScopeSelf();
+    
+    // Enumerate the events in the mask, invoking the target-action pairs for each.
+    _ASEnumerateControlEventsIncludedInMaskWithBlock(controlEvents, ^
+      (ASControlNodeEvent controlEvent)
+      {
+        // Iterate on each target action pair
+        for (ASControlTargetAction *targetAction in _controlEventDispatchTable[_ASControlNodeEventKeyForControlEvent(controlEvent)]) {
+          ASControlTargetAction *resolvedTargetAction = [[ASControlTargetAction alloc] init];
+          resolvedTargetAction.action = targetAction.action;
+          resolvedTargetAction.target = targetAction.target;
+          
+          // NSNull means that a nil target was set, so start at self and travel the responder chain
+          if (!resolvedTargetAction.target && targetAction.createdWithNoTarget) {
+            // if the target cannot perform the action, travel the responder chain to try to find something that does
+            resolvedTargetAction.target = [self.view targetForAction:resolvedTargetAction.action withSender:self];
+          }
+          
+          if (resolvedTargetAction.target) {
+            [resolvedEventTargetActionArray addObject:resolvedTargetAction];
+          }
         }
-        
-        if (resolvedTargetAction.target) {
-          [resolvedEventTargetActionArray addObject:resolvedTargetAction];
-        }
-      }
-    });
-  
-  _controlLock.unlock();
+      });
+  }
   
   //We don't want to hold the lock while calling out, we could potentially walk up the ownership tree causing a deadlock.
 #pragma clang diagnostic push

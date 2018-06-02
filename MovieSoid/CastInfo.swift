@@ -88,24 +88,24 @@ class CastInfo: Mappable, DetailInfoSortProtocol {
     }
 }
 
-extension CastInfo: IGListDiffable {
+extension CastInfo: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(detailIndex)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? CastInfo else { return false }
         return self.detailIndex == object.detailIndex
     }
 }
 
-extension Cast: IGListDiffable {
+extension Cast: ListDiffable {
     func diffIdentifier() -> NSObjectProtocol {
         return "\(self.id)" as NSObjectProtocol
     }
 
-    func isEqual(toDiffableObject object: IGListDiffable?) -> Bool {
+    func isEqual(toDiffableObject object: ListDiffable?) -> Bool {
         if self === object { return true }
         guard let object = object as? Cast else { return false }
         return self.id == object.id
